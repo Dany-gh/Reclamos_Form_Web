@@ -6,6 +6,7 @@
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from pathlib import Path
 
 scope1_uno="https://spreadsheets.google.com/feeds"
 scope1_dos='https://www.googleapis.com/auth/spreadsheets'
@@ -17,8 +18,13 @@ SCOPES = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/au
 #SCOPES = [scope1_uno, scope1_dos]
 #SCOPES=['https://www.googleapis.com/auth/spreadsheets']
 
+current_dir = Path(__file__).parent
+#print(current_dir)
+
 # Ruta al archivo de credenciales JSON
-KEY=r'C:\Users\Daniel\Proyectos\Proyectos Python\Reclamos_Form_Web\src\clave_Reclamos_Form_Web.json'
+#KEY=r'C:\Users\Daniel\Proyectos\Proyectos Python\Reclamos_Form_Web\src\clave_Reclamos_Form_Web.json'
+KEY=current_dir/'clave_Reclamos_Form_Web.json'
+#KEY=r'D:\Proyectos\Proyectos Python\Reclamos_Form_Web\src\clave_Reclamos_Form_Web.json'
 #KEY = 'clave_Reclamos_Form_Web.json'
 
 # Autenticación con las credenciales del archivo JSON
@@ -51,3 +57,5 @@ except gspread.exceptions.GSpreadException as e:
     print(f"**Ocurrió un error con gspread: {e}")
 except Exception as e:
     print(f"**Ocurrió un error general: {e}")
+
+print("**FIN**.")
