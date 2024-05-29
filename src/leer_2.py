@@ -35,7 +35,7 @@ print("Hola")
 # A partir de aqui trabajamos con la hoja de calculo
 try:
     # Abrimos segun ejemplo en youtube
-    #sheet=client.open("BDENRE_RECLAMOS").sheet1
+    #sheet=client.open("BDENRE_RECLAMOS").sheet1 # Esto me da error
     #sheet.update_acell('B1','Bingo')
     
     # Abrir la hoja de cálculo por ID
@@ -45,7 +45,11 @@ try:
     SHEET_NAME='RtaFormRecAgua'
     sheet = spreadsheet.worksheet(SHEET_NAME)
     print("**Conexión exitosa.")
-    print(sheet.get_all_records())
+    #print(sheet.get_all_records())
+    
+    # Obtiene todos los registros
+    records =sheet.get_all_records() 
+    
     # Leer un rango específico de celdas
     values = sheet.get('A1:I1')
     # Imprimir los valores obtenidos
