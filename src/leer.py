@@ -49,8 +49,18 @@ def main():
         #    print('%s, %s' % (row[0],row[1]))
 
         # Obtén los datos y el formato de la hoja
-        result = sheet.get(spreadsheetId=SPREADSHEET_ID, range=RANGE, fields='sheets(data.rowData.values.effectiveFormat)').execute()
-        rows = result['sheets'][0]['data'][0]['rowData']
+        #-------------------------------------------------------------------------------------------------------------------------------------------------
+        #result = sheet.get(spreadsheetId=SPREADSHEET_ID, ranges=RANGE, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatGPT. OK
+        #rows = result['sheets'][0]['data'][0]['rowData'] # Con chatGPT. OK
+        #-------------------------------------------------------------------------------------------------------------------------------------------------
+        result = sheet.get(spreadsheetId=SPREADSHEET_ID, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatBlackbox. Me toma la sheet1. OK
+        print(result)
+        #effective_formats = result.get('sheets')[0].get('data')[0].get('rowData') # Con chatblackbox. OK
+        rows = result.get('sheets')[0].get('data')[0].get('rowData') # Con chatblackbox. OK
+        #-------------------------------------------------------------------------------------------------------------------------------------------------
+        #result = service.spreadsheets().values().batchGet(spreadsheetId=SPREADSHEET_ID, ranges=RANGE).execute() # De chatBlackbox. OK
+        #rows = result['sheets'][0]['data'][0]['rowData'] # No OK
+        #-------------------------------------------------------------------------------------------------------------------------------------------------
 
         # Encuentra la primera fila no leída (donde la primera columna no es verde)
         def find_first_unread_row(rows):
@@ -98,12 +108,11 @@ def main():
                     'fields': 'userEnteredFormat.backgroundColor'
                 }
             }]
-
             body = {
-                'requests': requests
+            'requests': requests
             }
 
-            response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
+            response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error
             print('Fila marcada como leída.')
         else:
             print("No hay registros nuevos para leer.")
