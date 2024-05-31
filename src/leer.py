@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from pathlib import Path
 from googleapiclient.errors import HttpError
-
+import os
 
 # Alcances necesarios para acceder a la API de Google Sheets
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -14,6 +14,13 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '1FLWBfOe_ZKTMOviNBR35aC4CkHDGOwN2djyBd-rO0Js'
 SHEET_NAME = 'ReclamosRes055-20'
 #RANGE = 'RtaFormRecAgua!A1:A' # Rango dinámico para cubrir toda la columna A
+
+def clear_screen():
+    # Detecta el sistema operativo
+    if os.name == 'nt':  # Para Windows
+        os.system('cls')
+    else:  # Para Unix/Linux/MacOS
+        os.system('clear')
 
 def main():
     # Ruta al archivo de credenciales JSON
@@ -31,14 +38,12 @@ def main():
 
         # Obtén el rango de datos existente en la hoja, por medio de la columna A
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A:A').execute()
-        print("")
-        print("")
-        print("Resul:")
+        print("\033[34m Resul:\033[0m") #Imprime en color rojo
         print(result) # Imprime la lista
-        rows = result.get('values', [])
-        print(f"{len(rows)} rows retrieved.")
-        # Saco la cantidad de filas que tienen datos
-        num_rows = len(result.get('values', [])) - 1
+        rows = result.get('values', []) # Aqui solo son las filas de la primera columna (A)
+        print(f"\033[34m {len(rows)} : rows retrieved.\033[0m")
+        # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas
+        num_rows = len(result.get('values', [])) - 1 # Descuento la cabecera
             
         '''
         #--chatGPT-------------------------------------------------------------------------------
@@ -67,29 +72,40 @@ def main():
         if num_rows == 0:
             print("No hay datos en la hoja.")
         else:
-            RANGE = f'{SHEET_NAME}!A2:A{num_rows+1}'  # Rango dinámico basado en el número de filas con datos
+            # Rango sin encabezado
+            RANGE = f'{SHEET_NAME}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
 
-            #for row in rows:
-            #    Print
-            #    print('%s, %s' % (row[0],row[1]))
-
+            '''
+            for row in rows:
+                Print
+                print('%s, %s' % (row[0],row[1]))
+            '''
+            #===========================================
             # Obtén los datos y el formato de la hoja
             #-------------------------------------------------------------------------------------------------------------------------------------------------
-            #result = sheet.get(spreadsheetId=SPREADSHEET_ID, ranges=RANGE, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatGPT. OK
-            #rows = result['sheets'][0]['data'][0]['rowData'] # Con chatGPT. OK
+            # 1 Forma: El RANGE es sin el encabezado.
+            result = sheet.get(spreadsheetId=SPREADSHEET_ID, ranges=RANGE, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatGPT. OK
+            rows = result['sheets'][0]['data'][0]['rowData'] # Con chatGPT. OK
             #-------------------------------------------------------------------------------------------------------------------------------------------------
+            '''
+            # De esta manera no especifico con que hoja (sheet) quiero trabajar. Por defecto toma la hoja 1.
+            # 2 Forma:
             result = sheet.get(spreadsheetId=SPREADSHEET_ID, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatBlackbox. Me toma la sheet1. OK
-            print("result:")
+            print("\033[34m Result: \033[0m")
             print(result)
-            #effective_formats = result.get('sheets')[0].get('data')[0].get('rowData') # Con chatblackbox. OK
             rows = result.get('sheets')[0].get('data')[0].get('rowData') # Con chatblackbox. OK
-            print("rows")
+            print("\033[34m rows: \033[0m")
             print(rows)
             #-------------------------------------------------------------------------------------------------------------------------------------------------
-            #result = service.spreadsheets().values().batchGet(spreadsheetId=SPREADSHEET_ID, ranges=RANGE).execute() # De chatBlackbox. OK
-            #rows = result['sheets'][0]['data'][0]['rowData'] # No OK
+            '''
+            '''
             #-------------------------------------------------------------------------------------------------------------------------------------------------
-
+            3 Forma:
+            result = service.spreadsheets().values().batchGet(spreadsheetId=SPREADSHEET_ID, ranges=RANGE).execute() # De chatBlackbox. OK
+            rows = result['sheets'][0]['data'][0]['rowData'] # No OK
+            #-------------------------------------------------------------------------------------------------------------------------------------------------
+            '''
+            #==============================================================================================================================
             # Encuentra la primera fila no leída (donde la primera columna no es verde)
             def find_first_unread_row(rows):
                 for i, row in enumerate(rows):
@@ -98,24 +114,51 @@ def main():
                         background = cell['effectiveFormat']['backgroundColor']
                         # Verifica si el color es verde
                         if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
-                            return i + 1
+                            # No es VERDE la celda
+                            return i + 2
                     else:
-                        return i + 1
+                        #
+                        return i + 2
+                
+                print("\033[34m Primera Fila:\033[0m",i+2)
                 return None
+            #------------------------------------------------------------------------------------------------------------------------------
+
+            #==============================================================================================================================
+            # Encuentra la ULTIMA fila no leída (donde la primera columna no es verde)
+            def find_cant_unread_row(rows):
+                cont_Filas_No_Verdes = 0
+                for i, row in enumerate(rows):
+                    cell = row['values'][0]
+                    if 'effectiveFormat' in cell:
+                        background = cell['effectiveFormat']['backgroundColor']
+                        # Verifica si el color es verde
+                        if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
+                            # No es VERDE la celda
+                            cont_Filas_No_Verdes = cont_Filas_No_Verdes + 1
+                    else:
+                        #
+                        return cont_Filas_No_Verdes
+                
+                print("\033[34m Cant. Filas No Verdes:\033[0m",cont_Filas_No_Verdes)
+                return cont_Filas_No_Verdes
+            #------------------------------------------------------------------------------------------------------------------------------
 
             first_unread_row = find_first_unread_row(rows)
-
+            cant_unread_row = find_cant_unread_row(rows)
+            last_unread_row = first_unread_row + (cant_unread_row-1)
+            
             if first_unread_row:
                 # Procesa el registro en la primera fila no leída
-                print("Procesando fila:", first_unread_row)
-                range_to_read = f'{SHEET_NAME}!A{first_unread_row}:F{first_unread_row}'  # Ajusta el rango según sea necesario
+                print("\033[34m Procesando fila: \033[0m", first_unread_row)
+                # Este rango tiene que cambiar.
+                range_to_read = f'{SHEET_NAME}!A{first_unread_row}:F{last_unread_row}'  # Ajusta el rango según sea necesario
                 record = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=range_to_read).execute()
-                print("RECORD:")
+                print("\033[34m RECORD: \033[0m")
                 print(record['values'])
 
-
                 #--chatGPT-------------------------------------------------------------------------------
-                # Obtiene los detalles de la hoja de cálculo
+                # Obtiene los detalles de la hoja de cálculo. Saco el sheet_id
                 spreadsheet = sheet.get(spreadsheetId=SPREADSHEET_ID).execute()
                 # Busca el sheetId correspondiente al SHEET_NAME
                 sheet_id = None
@@ -125,13 +168,14 @@ def main():
                         break
                 #---------------------------------------------------------------------------------
 
-                # Marca la fila como leída pintando la primera celda de verde
+                # Marca la fila como leída, pintando la primera celda de verde
+                # Tener en cuenta que la primer fila es la nro 0
                 requests = [{
                     'updateCells': {
                         'range': {
                             'sheetId': sheet_id,
-                            'startRowIndex': first_unread_row - 1,
-                            'endRowIndex': first_unread_row,
+                            'startRowIndex': (first_unread_row-1), # Inicio del rango de filas.
+                            'endRowIndex': (cant_unread_row+1),   # Para abarcar mas filas (es exclusive)
                             'startColumnIndex': 0,
                             'endColumnIndex': 1,
                         },
@@ -145,7 +189,7 @@ def main():
                                     }
                                 }
                             }]
-                        }],
+                        }] * cant_unread_row, # Multiplica la cantidad de filas que quiero pintar
                         'fields': 'userEnteredFormat.backgroundColor'
                     }
                 }]
@@ -154,16 +198,17 @@ def main():
                 # Ejecuta la solicitud batchUpdate
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
                 #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error
-                print('Fila marcada como leída.')
+                print('\033[32m Fila marcada como leída. \033[0m')
             else:
-                print("No hay registros nuevos para leer.")
+                print("\033[34m No hay registros nuevos para leer. \033[0m")
     except HttpError as error:
-        print(f"An error occurred: {error}")
+        print(f"\033[31m An error occurred: \033[0m {error}")
         return error
 
 if __name__ == '__main__':
+    clear_screen()
     main()
-
+    print("\033[35m -----FINAL---- \033[0m")
 
 
 # Extraemos values del resultado
@@ -176,5 +221,3 @@ if __name__ == '__main__':
 #else:
 #    for row in values:
 #        print(row)
-
-#print("FINAL")
