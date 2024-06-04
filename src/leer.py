@@ -113,7 +113,7 @@ def CrearWordPersonas(df_pers):
     # Iteramos sobre cada Persona
     for r_idx, r_val in enumerate(df_pers):
         # Cargar plantilla
-        l_tpl=ES_WORD_TPL_PATH
+        l_tpl=WORD_TPL_PRUEBA   # Plantilla o Template que se va a usar.
         '''
         if (r_val['Idioma'] == 'ES'):
             l_tpl=ES_WORD_TPL_PATH
@@ -156,6 +156,7 @@ def CrearWordPersonas(df_pers):
         docx_tpl.save(OUTPUT_PATH + '\\' + nombre_doc)
         '''
         docx_tpl.save(OUTPUT_PATH + '\\' + nombre_doc)
+
 #==============================================================================================================================
 # Rutina para crear un fichero word para TODAS las personas 
 def crea_documento_unico(datos):
@@ -179,7 +180,7 @@ def crea_documento_unico(datos):
         # Guardar el documento
         doc.save(OUTPUT_PATH + '\\' + nombre_doc)
         
-        print(f"Documento guardado como {nombre_doc}")
+        print(f"Documento guardado como: {nombre_doc}")
     
     except Exception as e:
         print("Ocurrió un error:", e)
@@ -290,12 +291,12 @@ def main():
                         print_row_data(row)
 
                 # Convertir la lista en una lista de diccionarios
-                datos_diccionario = [{"Marca temporal": item[0], 
-                                      "Apellido": item[1], 
-                                      "Nombre" : item[2], 
-                                      "Telefono de Contacto" : item[3],
-                                      "Correo Electrónico" : item[4],
-                                      "Nro de Factura" : item[5]} for item in datos_lista]
+                datos_diccionario = [{'Marca temporal': item[0], 
+                                      'Apellido': item[1], 
+                                      'Nombre' : item[2], 
+                                      'Telefono de Contacto' : item[3],
+                                      'Correo Electrónico' : item[4],
+                                      'Nro de Factura' : item[5]} for item in datos_lista]
 
                 # Convierte los datos a un DataFrame de Pandas
                 if not datos_lista:
