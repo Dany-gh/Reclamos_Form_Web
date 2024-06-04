@@ -12,6 +12,9 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 #
 import shutil
+# Para leer dato por consola
+import sys
+
 
 # CONFIGURACION DE USUARIOS
 # ------- PARA EL GOOGLE SHEET
@@ -21,22 +24,27 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 # Escribe aquí el ID de tu documento:
 # ID o URL de la hoja de cálculo y el Rango
 SPREADSHEET_ID = '1FLWBfOe_ZKTMOviNBR35aC4CkHDGOwN2djyBd-rO0Js'
-SHEET_NAME = 'ReclamosRes055-20'
+
+SHEET_NAME='' # Aqui voy a tener con que hoja trabajo. si es de LUZ o es de AGUA
+#SHEET_NAME = 'ReclamosRes055-20'
+SHEET_NAME_REC_LUZ = 'RtaFormRecLuz'
+SHEET_NAME_REC_AGUA = 'RtaFormRecAgua'
 
 # -------- PARA EL WORD
+# Ruta al fichero Excel
+#EXCEL_PATH= '.\Inputs\People_Data.xlsx'
+
 # Ruta de Salida
 OUTPUT_PATH= '.\Outputs'
-# Ruta al fichero Excel
-EXCEL_PATH= '.\Inputs\People_Data.xlsx'
 
-# Ruta plantillas Ficheros word
+# Ruta plantillas o Templates. Ficheros word
 ES_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_ES.docx'
 EN_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_EN.docx'
-WORD_TPL_PRUEBA='.\Inputs\Templates\TemplateRECLAMOS_LUZ.docx'
+WORD_TPL_PRUEBA1='.\Inputs\Templates\WordTemplate_Prueba1.docx'
+WORD_TPL_PRUEBA2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
 
 # Ruta de Imagenes
 IMAGE_PATH='.\Inputs\Images'
-
 
 #==============================================================================================================================
 def clear_screen():
@@ -48,7 +56,15 @@ def clear_screen():
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Encuentra la PRIMERA fila no leída (donde la primera columna no es verde)
+def TipoReclamo():
+    if reclamo == 'LUZ':
+        SHEET_NAME=SHEET_NAME_REC_LUZ
+    else:
+        SHEET_NAME=SHEET_NAME_REC_AGUA
+#------------------------------------------------------------------------------------------------------------------------------
+
+#==============================================================================================================================
+# Encuentra la PRIMERA FILA no leída (donde la primera columna no es verde)
 def find_first_unread_row(rows):
     for i, row in enumerate(rows):
         cell = row['values'][0]
@@ -63,7 +79,7 @@ def find_first_unread_row(rows):
             #
             #return i + 2
             return None
-                    
+                 
     #print("\033[34m Primera Fila:\033[0m",i+2)
     return None
 #------------------------------------------------------------------------------------------------------------------------------
@@ -80,6 +96,8 @@ def find_cant_unread_row(rows):
             if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
                 # No es VERDE la celda
                 cont_Filas_No_Verdes = cont_Filas_No_Verdes + 1
+                if (background.get('red', 0) == 1):
+                    return cont_Filas_No_Verdes
         else:
             #
             return cont_Filas_No_Verdes
@@ -89,6 +107,7 @@ def find_cant_unread_row(rows):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
+# 
 def print_row_data(row):
     """
     Imprime los datos de una fila.
@@ -98,6 +117,7 @@ def print_row_data(row):
     print('-' * 80)  # Línea separadora entre filas
 #------------------------------------------------------------------------------------------------------------------------------
 
+#==============================================================================================================================
 # Rutina para eliminar y crear carpeta
 def EliminarCrearCarpetas(path):
     #Verificar si la carpeta existe y elimninarla
@@ -106,6 +126,7 @@ def EliminarCrearCarpetas(path):
         
     # Crear carpeta
     os.mkdir(OUTPUT_PATH)
+#------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
 # Rutina para crear un fichero word para cada persona 
@@ -113,7 +134,7 @@ def CrearWordPersonas(df_pers):
     # Iteramos sobre cada Persona
     for r_idx, r_val in enumerate(df_pers):
         # Cargar plantilla
-        l_tpl=WORD_TPL_PRUEBA   # Plantilla o Template que se va a usar.
+        l_tpl=ES_WORD_TPL_PATH   # Plantilla o Template que se va a usar.
         '''
         if (r_val['Idioma'] == 'ES'):
             l_tpl=ES_WORD_TPL_PATH
@@ -133,7 +154,7 @@ def CrearWordPersonas(df_pers):
         context = {
             'name': r_val['Nombre'],
             'surname1': r_val['Apellido'],
-            #'surname2': r_val['Telefono de Contacto'], # En este me da error
+            'surname2': r_val['Telefono de Contacto'], # En este me da error
             'edad': r_val['Correo Electrónico'],
             #'picture': img,
         }
@@ -165,7 +186,7 @@ def crea_documento_unico(datos):
         #lista_diccionarios = [{"nombre": item[0], "edad": item[1]} for item in datos]
         
         # Cargar la plantilla
-        doc = DocxTemplate(WORD_TPL_PRUEBA)
+        doc = DocxTemplate(WORD_TPL_PRUEBA2)
         
         # Crear el contexto con todos los datos
         contexto = {'items': datos}
@@ -185,11 +206,29 @@ def crea_documento_unico(datos):
     except Exception as e:
         print("Ocurrió un error:", e)
 
+#==============================================================================================================================
+# RUTINA PRINCIPAL
 def main():
+    
+    # Verifica si se pasó algún argumento
+    # sys.arg[0] = Nombre del script
+    if len(sys.argv) > 1:
+        dato = sys.argv[1]
+        print(f"Dato recibido: {dato}")
+        
+        # Aquí puedes tomar decisiones basadas en el valor de 'dato'
+        if dato == "opcion1":
+            print("Has seleccionado opción 1")
+        elif dato == "opcion2":
+            print("Has seleccionado opción 2")
+        else:
+            print("Opción no reconocida")
+    else:
+        print("No se proporcionó ningún dato")
+    
     # Ruta al archivo de credenciales JSON
     current_dir = Path(__file__).parent
     KEY=current_dir/'clave_Reclamos_Form_Web.json'
-    
     try:
         # Autenticación y acceso a la hoja de cálculo
         creds = None
@@ -200,9 +239,9 @@ def main():
         sheet = service.spreadsheets()
 
         # Obtén el rango de datos existente en la hoja, por medio de la columna A
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A:A').execute()
-        print("\033[34m Resul:\033[0m") #Imprime en color azul
-        print(result) # Imprime la lista
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME_REC_LUZ}!A:A').execute()
+        print("\033[34m Resul:\033[0m") # Imprime en color azul
+        print(result) # Imprime el diccionario
         rows = result.get('values', []) # Aqui solo son las filas de la primera columna (A)
         print(f"\033[34m {len(rows)} : Filas (rows) Recuperadas.\033[0m")
         # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas
@@ -233,10 +272,10 @@ def main():
         '''
 
         if num_rows == 0:
-            print("\033[34m No hay datos en la hoja: {SHEET_NAME}\033[0m")
+            print("\033[34m No hay datos en la hoja: {SHEET_NAME_REC_LUZ}\033[0m")
         else:
             # Rango sin encabezado
-            RANGE = f'{SHEET_NAME}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
+            RANGE = f'{SHEET_NAME_REC_LUZ}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
            
             #===========================================
             # Obtén los datos y el formato de la hoja
@@ -276,7 +315,7 @@ def main():
                 # Procesa el registro en la primera fila no leída
                 print("\033[34m Procesando fila: \033[0m", first_unread_row)
                 # Este rango es donde esta mi informacion, nueva.
-                range_to_read = f'{SHEET_NAME}!A{first_unread_row}:F{last_unread_row}'  # Ajusta el rango según sea necesario
+                range_to_read = f'{SHEET_NAME_REC_LUZ}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
                 record = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=range_to_read).execute()
                 print("\033[34m RECORD: \033[0m")
                 datos_lista = record.get('values',[])
@@ -291,34 +330,40 @@ def main():
                         print_row_data(row)
 
                 # Convertir la lista en una lista de diccionarios
-                datos_diccionario = [{'Marca temporal': item[0], 
+                datos_diccionario = [{'Marca_Temporal': item[0], 
                                       'Apellido': item[1], 
                                       'Nombre' : item[2], 
-                                      'Telefono de Contacto' : item[3],
-                                      'Correo Electrónico' : item[4],
-                                      'Nro de Factura' : item[5]} for item in datos_lista]
+                                      'DNI' : item[3], 
+                                      'Nro_de_Telefono' : item[4],
+                                      'E_Mail' : item[5],
+                                      'Domicilio' : item[6],
+                                      'Nro_de_Suministro' : item[7],
+                                      'Tipo_de_Reclamo' : item[8],
+                                      'Descripcion_Reclamo' : item[9]} for item in datos_lista]
 
+                '''
                 # Convierte los datos a un DataFrame de Pandas
                 if not datos_lista:
                     print('No data found.')
                 else:
                     # Asume que la primera fila de values contiene los nombres de las columnas
                     #df = pd.DataFrame(datos[1:], columns=datos[0])
-
                     # Muestra el DataFrame
-                    print()
-                
+                    #print(df)
+                '''
                 EliminarCrearCarpetas(OUTPUT_PATH)
-                #CrearWordPersonas(datos_diccionario)
-                crea_documento_unico(datos_diccionario)
+                #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por reclamo.
+                crea_documento_unico(datos_diccionario) # Crea una hoja de word por multiples reclamos.
 
-                #--chatGPT-------------------------------------------------------------------------------
+                # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+                
+                # --- SACO sheet_id (chatGPT) ------------------------------------------------------------------------------
                 # Obtiene los detalles de la hoja de cálculo. Saco el sheet_id
                 spreadsheet = sheet.get(spreadsheetId=SPREADSHEET_ID).execute()
                 # Busca el sheetId correspondiente al SHEET_NAME
                 sheet_id = None
                 for sheet in spreadsheet['sheets']:
-                    if sheet['properties']['title'] == SHEET_NAME:
+                    if sheet['properties']['title'] == SHEET_NAME_REC_LUZ:
                         sheet_id = sheet['properties']['sheetId']
                         break
                 #---------------------------------------------------------------------------------
@@ -354,19 +399,21 @@ def main():
 
                 # Ejecuta la solicitud batchUpdate
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
-                #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error
+                #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error aqui
                 print(f"\033[32m {cant_unread_row} :Filas Marcadas como leídas. \033[0m")
+                
+                # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
                 print("\033[34m No hay registros nuevos para leer. \033[0m")
+            
     except HttpError as error:
         print(f"\033[31m Un Error ha ocurrido: \033[0m {error}")
         return error
 
+# /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
     main()
-    
-    
     print("\033[35m -----FINAL---- \033[0m")
 
 
