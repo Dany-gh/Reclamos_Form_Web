@@ -17,7 +17,9 @@ import sys
 # Para Depurar un programa
 import pdb
 # Para sacar fecha de hoy
-from datetime import datetime 
+from datetime import datetime
+# Para usar otra manera de crear documentos de word
+from docx import Document
 
 # CONFIGURACION DE USUARIOS
 # ------- PARA EL GOOGLE SHEET
@@ -91,7 +93,7 @@ def find_first_unread_row(rows):
         cell = row['values'][0]
         if 'effectiveFormat' in cell:
             background = cell['effectiveFormat']['backgroundColor']
-            # Verifica si el color de la celda es verde
+            # Verifica si el color de la celda es VERDE (0,1,0)
             if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
                 # No es VERDE la celda
                 print("\033[34m Primera Fila Sin Leer:\033[0m",i+2)
@@ -117,7 +119,8 @@ def find_cant_unread_row(rows):
             if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
                 # No es VERDE la celda
                 cont_Filas_No_Verdes = cont_Filas_No_Verdes + 1
-                if (background.get('red', 0) == 1):
+                if (background.get('red', 0) == 1 and background.get('green', 0) == 0 and background.get('blue', 0) == 0):
+                    # Si la celda es de COLOR ROJO sale.
                     return cont_Filas_No_Verdes
         else:
             #
@@ -151,6 +154,7 @@ def EliminarCrearCarpetas(path):
 
 #==============================================================================================================================
 # Rutina para crear un fichero word para cada persona 
+# ESTA FORMA SI USA PLANTILLA PRE DEFINIDA. 
 def CrearWordPersonas(df_pers):
     # Iteramos sobre cada Persona
     for r_idx, r_val in enumerate(df_pers):
@@ -202,6 +206,7 @@ def CrearWordPersonas(df_pers):
 
 #==============================================================================================================================
 # Rutina para crear un fichero word para TODAS las personas 
+# ESTA FORMA SI USA PLANTILLA PRE DEFINIDA. 
 def crea_documento_unico(datos_para_diccionario):
     try:
         # Convertir la lista a una lista de diccionarios
@@ -215,20 +220,26 @@ def crea_documento_unico(datos_para_diccionario):
         
         # Verificar el contexto
         print("Contexto:", contexto)
+        # Renderizar el documento con el contexto
+        doc.render(contexto)
         
         # Obtener la fecha actual
         fecha_actual = datetime.now()
         # Extraer día, mes y año
         dia = fecha_actual.day
         mes = fecha_actual.month
-        año = fecha_actual.year
+        anio = fecha_actual.year
+        
+        # Formatear el nombre del archivo
+        nombre_archivo = f"RECLAMO_{anio}{mes:02d}{dia:02d}.docx"
 
-        # Renderizar el documento con el contexto
-        doc.render(contexto)
         if SHEET_NAME == SHEET_NAME_REC_LUZ:
-            nombre_doc = 'ReclamosAgua_' + {año} + {mes} + {dia} +'.docx'
+            # Formatear el nombre del archivo
+            nombre_doc = f"RECLAMOS_LUZ_{anio}{mes:02d}{dia:02d}.docx"
+
         elif SHEET_NAME == SHEET_NAME_REC_AGUA:
-            nombre_doc = 'ReclamosLuz_'+ {año} + {mes} + {dia} + '.docx'
+            # Formatear el nombre del archivo
+            nombre_doc = f"RECLAMOS_AGUA_{anio}{mes:02d}{dia:02d}.docx"
 
         # Guardar el documento
         doc.save(OUTPUT_PATH + '\\' + nombre_doc)
@@ -238,6 +249,52 @@ def crea_documento_unico(datos_para_diccionario):
     except Exception as e:
         print("Ocurrió un error:", e)
 #------------------------------------------------------------------------------------------------------------------------------
+
+#==============================================================================================================================
+# Rutina para crear un fichero word para TODAS las personas (OTRA MANERA)
+# ESTA FORMA NO USA PLANTILLA PRE DEFINIDA. 
+def OtraFormaCrearWord(datos_para_diccionario):
+    # Obtener la fecha actual
+    fecha_actual = datetime.now()
+    anio = fecha_actual.year
+    mes = fecha_actual.month
+    dia = fecha_actual.day
+
+    # Formatear el nombre del archivo
+    nombre_archivo = f"RECLAMO_{anio}{mes:02d}{dia:02d}.docx"
+
+    # Crear un documento de Word
+    documento = Document()
+
+    # Definir contador de hojas
+    contador_hojas = 1
+
+    # Iterar sobre cada diccionario en la lista y agregarlo al documento
+    for indice, diccionario in enumerate(datos_para_diccionario):
+        # Agregar el contenido del diccionario al documento
+        documento.add_paragraph(f"RECLAMO DE AGUA NRO: {contador_hojas}")
+        documento.add_paragraph(f"MARCA: {diccionario['Marca_Temporal']}")
+        documento.add_paragraph(f"Apellido: {diccionario['Apellido']}")
+        documento.add_paragraph(f"NOMBRE: {diccionario['Nombre']}")
+        documento.add_paragraph(f"DNI: {diccionario['DNI']}")
+        documento.add_paragraph(f"NRO. TEL: {diccionario['Nro_de_Telefono']}")
+        documento.add_paragraph(f"CORREO: {diccionario['E_Mail']}")
+        documento.add_paragraph(f"DOMICILIO: {diccionario['Domicilio']}")
+        documento.add_paragraph(f"NRO. SUMINISTRO: {diccionario['Nro_de_Suministro']}")
+        documento.add_paragraph(f"DESCRIPCION: {diccionario['Descripcion_Reclamo']}")
+
+        # Agregar un salto de página después de cada elemento
+        documento.add_page_break()
+
+        # Incrementar el contador de hojas
+        contador_hojas += 1
+
+    # Guardar el documento
+    documento.save(nombre_archivo)
+
+    print(f"Archivo '{nombre_archivo}' creado exitosamente.")    
+#------------------------------------------------------------------------------------------------------------------------------
+
 
 #==============================================================================================================================
 # RUTINA PRINCIPAL
@@ -258,11 +315,15 @@ def main():
         #pdb.set_trace()
         # Obtén el rango de datos existente en la hoja, por medio de la columna A
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A:A').execute()
-        # range: NombreHoja!A1:A139
-        # majorDimension:ROWS
-        # values: [[Titulo Celda],[],[],[],.......[valor de la celda A139 en este caso]] (es una lista de lista)
+        '''
+        result=
+        range: NombreHoja!A1:A139
+        majorDimension:ROWS
+        values: [[Titulo Celda de A1],[],[],[],.......[valor de la celda A139 en este caso]] (es una lista de lista)
+        '''
         print("\033[34m Resul:\033[0m") # Imprime en color azul
         print(result) # Imprime el diccionario
+        
         rows = result.get('values', []) # Aqui solo son las filas (rows) de la primera columna (A). Hasta la ultima fila que tiene valor
         print(f"\033[34m {len(rows)} : Filas (rows) Recuperadas.\033[0m")
         # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas
@@ -308,6 +369,7 @@ def main():
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             
             '''
+            #-------------------------------------------------------------------------------------------------------------------------------------------------
             # De esta manera no especifico con que hoja (sheet) quiero trabajar. Por defecto toma la hoja 1.
             # 2 Forma:
             result = sheet.get(spreadsheetId=SPREADSHEET_ID, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatBlackbox. Me toma la sheet1. OK
@@ -320,6 +382,7 @@ def main():
             '''
             '''
             #-------------------------------------------------------------------------------------------------------------------------------------------------
+            # 
             3 Forma:
             result = service.spreadsheets().values().batchGet(spreadsheetId=SPREADSHEET_ID, ranges=RANGE).execute() # De chatBlackbox. OK
             rows = result['sheets'][0]['data'][0]['rowData'] # No OK
@@ -330,7 +393,7 @@ def main():
             first_unread_row = find_first_unread_row(rows)
             if not (first_unread_row == None):
                 cant_unread_row = find_cant_unread_row(rows) # Cantidad de filas no leidas (NO VERDE)
-                last_unread_row = first_unread_row + (cant_unread_row-1) # Ultima fila.
+                last_unread_row = (cant_unread_row + first_unread_row) - 1 # Saco la ultima fila del Rango que NO tiene VERDE.
             else:
                 first_unread_row = 0 # Le pongo valor cero para decir que no hay filas nuevas.
             
@@ -338,21 +401,67 @@ def main():
                 # Procesa el registro en la primera fila no leída
                 print("\033[34m Procesando desde la fila: \033[0m", first_unread_row)
                 # Este rango es donde esta mi informacion, nueva.
-                range_to_read = f'{SHEET_NAME}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
+                if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
+                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
+                elif(SHEET_NAME == SHEET_NAME_REC_AGUA):
+                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:I{last_unread_row}'  # Ajusta el rango según sea necesario
                 
                 # ----CHATGPT
-                rango_base=range_to_read.split('!')[1]  # Esto te dará 'CELDAx:CELDAy'
+                rango_base=range_to_read.split('!')[1]  # Esto te dará 'CELDAx:CELDAy' CELDA=Letra, x e y numeros
                 # Extraer el número de fila base
-                fila_base = int(rango_base.split(':')[0][1:])  # Esto te dará 
+                fila_base = int(rango_base.split(':')[0][1:])  # Esto te dará nro de fila 
                 # ---------------------------------------------------------------
 
                 record = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=range_to_read).execute()
-                print("\033[34m RECORD: \033[0m") # Color AZUL
+                print("\033[34mRECORD: \033[0m") # Color AZUL
                 # Obtengo la LISTA.
                 datos_lista = record.get('values',[])
+                
                 # La primera fila contiene los nombres de las columnas
-                columns = datos_lista[0][1] # Apellido [Fila][Columna]
-                valor = datos_lista[1:]
+                columns = datos_lista[0][1] # apunta a la segunda columna en este caso 'Apellido' [Fila][Columna]
+                valor = datos_lista[1:] # Me devuelve todos los datos a partir de la fila 1.
+                
+                '''
+                # --- Chat GPT -----------------------------------------------
+                # Remueve el carácter de nueva línea del quinto campo
+                campo_corregido = datos_lista[8].replace("\n", "")
+
+                # Crea una nueva lista con el campo corregido
+                lista_corregida = datos_lista[:8] + [campo_corregido]
+
+                # Imprime la nueva lista corregida
+                print(lista_corregida)
+                #-------------------------------------------------------------
+                '''
+
+                # --- Chat GPT -----------------------------------------------
+                # Especifica el índice del campo que deseas corregir (en este caso, el campo 5 tiene índice 4)
+                indice_campo_a_corregir = 8
+
+                # Inicializa una nueva lista para almacenar las listas corregidas
+                lista_corregida = []
+                # Imprime el tipo de 
+                print(type(lista_corregida))
+
+                # Recorre cada sublista en la lista de listas
+                for sublista in datos_lista:
+                    # Verifica si el campo a corregir es una cadena antes de intentar usar replace
+                    if isinstance(sublista[indice_campo_a_corregir], str):
+                        # Corrige el campo eliminando el carácter de nueva línea
+                        sublista[indice_campo_a_corregir] = sublista[indice_campo_a_corregir].replace("\n", "")
+                    
+                    # Añade la sublista corregida a la nueva lista
+                    lista_corregida.append(sublista)
+
+                # Imprime la nueva lista de listas corregida
+                print(lista_corregida)
+
+                datos_lista = lista_corregida
+                # Imprime el tipo de 
+                print(type(datos_lista))
+
+                #------------------------------------------------------------- 
+
                 if not datos_lista:
                     print('No data found.')
                 else:
@@ -363,7 +472,7 @@ def main():
                 #pdb.set_trace()
                 if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
                     # Convertir la lista en una lista de diccionarios
-                    datos_diccionario = [{'Marca_Temporal': item[0], 
+                    datos_lista_diccionario = [{'Marca_Temporal': item[0], 
                                         'Apellido': item[1], 
                                         'Nombre' : item[2], 
                                         'DNI' : item[3],
@@ -375,7 +484,7 @@ def main():
                                         'Descripcion_Reclamo' : item[9]} for item in datos_lista]
                 elif(SHEET_NAME == SHEET_NAME_REC_AGUA):
                     # Convertir la lista en una lista de diccionarios
-                    datos_diccionario = [{'Marca_Temporal': item[0], 
+                    datos_lista_diccionario = [{'Marca_Temporal': item[0], 
                                         'Apellido': item[1], 
                                         'Nombre' : item[2], 
                                         'DNI' : item[3], 
@@ -383,8 +492,37 @@ def main():
                                         'E_Mail' : item[5],
                                         'Domicilio' : item[6],
                                         'Nro_de_Suministro' : item[7],
-                                        'Descripcion_Reclamo' : item[8].replace("\n","")} for item in datos_lista]
+                                        'Descripcion_Reclamo' : item[8]} for item in datos_lista]
 
+                # Imprime el tipo de datos_diccionario
+                print(type(datos_lista_diccionario))
+                
+                #--- ChatGPT -----------------------------------------------------------------------
+                # Recorre la lista de diccionario e imprime solo el campo especifico del diccionario
+                # Define el campo específico que quieres imprimir
+                campo_especifico = "Descripcion_Reclamo"
+                # Verificar si datos_diccionario es realmente un diccionario
+                
+                if isinstance(datos_lista_diccionario, list):
+                    for diccionario in datos_lista_diccionario:
+                        # Verifica si el campo específico existe en el diccionario
+                        if campo_especifico in diccionario:
+                            print("")
+                            print(diccionario[campo_especifico])
+                        else:
+                            print(f"{campo_especifico} no encontrado en el diccionario: {diccionario}")                    
+                
+                    '''
+                    for clave, sub_diccionario in datos_diccionario.items():
+                        if campo_especifico in sub_diccionario:
+                            print(sub_diccionario[campo_especifico])
+                        else:
+                            print(f"{campo_especifico} no encontrado en {clave}")
+                    '''
+                else:
+                    print("datos_lista_diccionario, no es una LISTA ")
+                #---------------------------------------------------------------------------------------
+                
                 '''
                 # Convierte los datos a un DataFrame de Pandas
                 if not datos_lista:
@@ -395,10 +533,11 @@ def main():
                     # Muestra el DataFrame
                     #print(df)
                 '''
+                
                 EliminarCrearCarpetas(OUTPUT_PATH)
                 #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por reclamo.
-                crea_documento_unico(datos_diccionario) # Crea una hoja de word por multiples reclamos.
-
+                #crea_documento_unico(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
+                OtraFormaCrearWord(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
                 '''
                 # --- SACO sheet_id (chatGPT) ------------------------------------------------------------------------------
@@ -483,16 +622,5 @@ if __name__ == '__main__':
     '''
     TipoReclamo('AGUA')
     main()
-    print("\033[35m -----FINAL---- \033[0m")
+    print("\033[35m ----- FINAL PROGRAM ---- \033[0m")
     exit(0)
-
-# Extraemos values del resultado
-#values = result.get('values',[])
-#print(values)
-
-# Imprime los valores obtenidos
-#if not values:
-#    print('No data found.')
-#else:
-#    for row in values:
-#        print(row)

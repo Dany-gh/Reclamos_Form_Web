@@ -1,0 +1,28 @@
+# Formatear el nombre del archivo
+nombre_archivo = f"RECLAMO_{anio}{mes:02d}{dia:02d}.docx"
+
+# Crear un documento de Word
+documento = Document()
+
+# Función para agregar texto en negrita y con un tamaño de letra más grande
+def agregar_texto_negrita(parrafo, texto):
+    run = parrafo.add_run(texto)
+    run.bold = True
+    run.font.size = Pt(14)
+
+# Iterar sobre cada diccionario en la lista y agregarlo al documento
+for diccionario in datos_para_diccionario:
+    # Crear un nuevo párrafo para cada elemento del diccionario
+    for clave, valor in diccionario.items():
+        parrafo = documento.add_paragraph()
+        parrafo.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        agregar_texto_negrita(parrafo, f"{clave}: ")
+        parrafo.add_run(valor)
+
+    # Agregar un salto de página después de cada conjunto de datos del reclamo
+    documento.add_page_break()
+
+# Guardar el documento
+documento.save(nombre_archivo)
+
+print(f"Archivo '{nombre_archivo}' creado exitosamente.")
