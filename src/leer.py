@@ -10,11 +10,14 @@ import os
 # Para word
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
-#
+# Para
 import shutil
 # Para leer dato por consola
 import sys
-
+# Para Depurar un programa
+import pdb
+# Para sacar fecha de hoy
+from datetime import datetime 
 
 # CONFIGURACION DE USUARIOS
 # ------- PARA EL GOOGLE SHEET
@@ -25,8 +28,9 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 # ID o URL de la hoja de cálculo y el Rango
 SPREADSHEET_ID = '1FLWBfOe_ZKTMOviNBR35aC4CkHDGOwN2djyBd-rO0Js'
 
+global SHEET_NAME
 SHEET_NAME='' # Aqui voy a tener con que hoja trabajo. si es de LUZ o es de AGUA
-#SHEET_NAME = 'ReclamosRes055-20'
+SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 SHEET_NAME_REC_LUZ = 'RtaFormRecLuz'
 SHEET_NAME_REC_AGUA = 'RtaFormRecAgua'
 
@@ -38,15 +42,19 @@ SHEET_NAME_REC_AGUA = 'RtaFormRecAgua'
 OUTPUT_PATH= '.\Outputs'
 
 # Ruta plantillas o Templates. Ficheros word
+global WORD_TEMPLATE
+WORD_TEMPLATE=''
 ES_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_ES.docx'
 EN_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_EN.docx'
 WORD_TPL_PRUEBA1='.\Inputs\Templates\WordTemplate_Prueba1.docx'
-WORD_TPL_PRUEBA2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
+WORD_TPL_PRUEBA_L2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
+WORD_TPL_PRUEBA_A2='.\Inputs\Templates\TemplateRECLAMOS_AGUA2.docx'
 
 # Ruta de Imagenes
 IMAGE_PATH='.\Inputs\Images'
 
 #==============================================================================================================================
+# Limpia pantalla
 def clear_screen():
     # Detecta el sistema operativo
     if os.name == 'nt':  # Para Windows
@@ -56,11 +64,24 @@ def clear_screen():
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-def TipoReclamo():
+# Defino si es un Reclamo de LUZ o de AGUA.
+def TipoReclamo(reclamo):
+    global SHEET_NAME
+    global WORD_TEMPLATE
+    print(f"Tipo de Reclamo: {reclamo}")
     if reclamo == 'LUZ':
-        SHEET_NAME=SHEET_NAME_REC_LUZ
+        # Es un reclamo de LUZ
+        SHEET_NAME = SHEET_NAME_REC_LUZ
+        WORD_TEMPLATE = WORD_TPL_PRUEBA_L2
+        # Falta definir la planilla
     else:
-        SHEET_NAME=SHEET_NAME_REC_AGUA
+        # Es un reclamo de AGUA
+        SHEET_NAME = SHEET_NAME_REC_AGUA
+        WORD_TEMPLATE = WORD_TPL_PRUEBA_A2
+        #SHEET_NAME=SHEET_NAME_PRUEBA
+        #exit(0)
+    print(f"\033[34m HOJA SELECCIONADA: {SHEET_NAME}\033[0m")
+    print(f"\033[34m PLANTILLA USADA: {WORD_TEMPLATE}\033[0m")
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
@@ -134,7 +155,7 @@ def CrearWordPersonas(df_pers):
     # Iteramos sobre cada Persona
     for r_idx, r_val in enumerate(df_pers):
         # Cargar plantilla
-        l_tpl=ES_WORD_TPL_PATH   # Plantilla o Template que se va a usar.
+        l_tpl=WORD_TEMPLATE   # Plantilla o Template que se va a usar.
         '''
         if (r_val['Idioma'] == 'ES'):
             l_tpl=ES_WORD_TPL_PATH
@@ -177,27 +198,38 @@ def CrearWordPersonas(df_pers):
         docx_tpl.save(OUTPUT_PATH + '\\' + nombre_doc)
         '''
         docx_tpl.save(OUTPUT_PATH + '\\' + nombre_doc)
+#------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
 # Rutina para crear un fichero word para TODAS las personas 
-def crea_documento_unico(datos):
+def crea_documento_unico(datos_para_diccionario):
     try:
         # Convertir la lista a una lista de diccionarios
         #lista_diccionarios = [{"nombre": item[0], "edad": item[1]} for item in datos]
         
         # Cargar la plantilla
-        doc = DocxTemplate(WORD_TPL_PRUEBA2)
+        doc = DocxTemplate(WORD_TEMPLATE)
         
         # Crear el contexto con todos los datos
-        contexto = {'items': datos}
+        contexto = {'items': datos_para_diccionario}
         
         # Verificar el contexto
         print("Contexto:", contexto)
         
+        # Obtener la fecha actual
+        fecha_actual = datetime.now()
+        # Extraer día, mes y año
+        dia = fecha_actual.day
+        mes = fecha_actual.month
+        año = fecha_actual.year
+
         # Renderizar el documento con el contexto
         doc.render(contexto)
-        
-        nombre_doc = 'Reclamos_' + '.docx'
+        if SHEET_NAME == SHEET_NAME_REC_LUZ:
+            nombre_doc = 'ReclamosAgua_' + {año} + {mes} + {dia} +'.docx'
+        elif SHEET_NAME == SHEET_NAME_REC_AGUA:
+            nombre_doc = 'ReclamosLuz_'+ {año} + {mes} + {dia} + '.docx'
+
         # Guardar el documento
         doc.save(OUTPUT_PATH + '\\' + nombre_doc)
         
@@ -205,28 +237,14 @@ def crea_documento_unico(datos):
     
     except Exception as e:
         print("Ocurrió un error:", e)
+#------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
 # RUTINA PRINCIPAL
 def main():
-    
-    # Verifica si se pasó algún argumento
-    # sys.arg[0] = Nombre del script
-    if len(sys.argv) > 1:
-        dato = sys.argv[1]
-        print(f"Dato recibido: {dato}")
-        
-        # Aquí puedes tomar decisiones basadas en el valor de 'dato'
-        if dato == "opcion1":
-            print("Has seleccionado opción 1")
-        elif dato == "opcion2":
-            print("Has seleccionado opción 2")
-        else:
-            print("Opción no reconocida")
-    else:
-        print("No se proporcionó ningún dato")
-    
-    # Ruta al archivo de credenciales JSON
+    global SHEET_NAME
+
+    # Ruta al archivo de credenciales .JSON
     current_dir = Path(__file__).parent
     KEY=current_dir/'clave_Reclamos_Form_Web.json'
     try:
@@ -237,12 +255,15 @@ def main():
 
         # Llamada a la api
         sheet = service.spreadsheets()
-
+        #pdb.set_trace()
         # Obtén el rango de datos existente en la hoja, por medio de la columna A
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME_REC_LUZ}!A:A').execute()
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A:A').execute()
+        # range: NombreHoja!A1:A139
+        # majorDimension:ROWS
+        # values: [[Titulo Celda],[],[],[],.......[valor de la celda A139 en este caso]] (es una lista de lista)
         print("\033[34m Resul:\033[0m") # Imprime en color azul
         print(result) # Imprime el diccionario
-        rows = result.get('values', []) # Aqui solo son las filas de la primera columna (A)
+        rows = result.get('values', []) # Aqui solo son las filas (rows) de la primera columna (A). Hasta la ultima fila que tiene valor
         print(f"\033[34m {len(rows)} : Filas (rows) Recuperadas.\033[0m")
         # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas
         num_rows = len(result.get('values', [])) - 1 # Descuento la cabecera
@@ -272,10 +293,10 @@ def main():
         '''
 
         if num_rows == 0:
-            print("\033[34m No hay datos en la hoja: {SHEET_NAME_REC_LUZ}\033[0m")
+            print(f"\033[34m No hay datos en la hoja: {SHEET_NAME}\033[0m")
         else:
             # Rango sin encabezado
-            RANGE = f'{SHEET_NAME_REC_LUZ}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
+            RANGE = f'{SHEET_NAME}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
            
             #===========================================
             # Obtén los datos y el formato de la hoja
@@ -283,6 +304,7 @@ def main():
             # 1 Forma: El RANGE es sin el encabezado.
             result = sheet.get(spreadsheetId=SPREADSHEET_ID, ranges=RANGE, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatGPT. OK
             rows = result['sheets'][0]['data'][0]['rowData'] # Con chatGPT. OK
+            # rowDat:{values:[{..}]}
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             
             '''
@@ -304,42 +326,64 @@ def main():
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             '''
             
+            # Busco la primera fila que no esta pintada de VERDE, del rango (RANGE) especificado.
             first_unread_row = find_first_unread_row(rows)
             if not (first_unread_row == None):
-                cant_unread_row = find_cant_unread_row(rows)
-                last_unread_row = first_unread_row + (cant_unread_row-1)
+                cant_unread_row = find_cant_unread_row(rows) # Cantidad de filas no leidas (NO VERDE)
+                last_unread_row = first_unread_row + (cant_unread_row-1) # Ultima fila.
             else:
                 first_unread_row = 0 # Le pongo valor cero para decir que no hay filas nuevas.
             
             if first_unread_row:
                 # Procesa el registro en la primera fila no leída
-                print("\033[34m Procesando fila: \033[0m", first_unread_row)
+                print("\033[34m Procesando desde la fila: \033[0m", first_unread_row)
                 # Este rango es donde esta mi informacion, nueva.
-                range_to_read = f'{SHEET_NAME_REC_LUZ}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
+                range_to_read = f'{SHEET_NAME}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
+                
+                # ----CHATGPT
+                rango_base=range_to_read.split('!')[1]  # Esto te dará 'CELDAx:CELDAy'
+                # Extraer el número de fila base
+                fila_base = int(rango_base.split(':')[0][1:])  # Esto te dará 
+                # ---------------------------------------------------------------
+
                 record = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=range_to_read).execute()
-                print("\033[34m RECORD: \033[0m")
+                print("\033[34m RECORD: \033[0m") # Color AZUL
+                # Obtengo la LISTA.
                 datos_lista = record.get('values',[])
                 # La primera fila contiene los nombres de las columnas
-                #columns = datos[0][1]
-                #data = datos[1:]
+                columns = datos_lista[0][1] # Apellido [Fila][Columna]
+                valor = datos_lista[1:]
                 if not datos_lista:
                     print('No data found.')
                 else:
                     # Itera sobre las filas y las imprime
                     for row in datos_lista:
                         print_row_data(row)
-
-                # Convertir la lista en una lista de diccionarios
-                datos_diccionario = [{'Marca_Temporal': item[0], 
-                                      'Apellido': item[1], 
-                                      'Nombre' : item[2], 
-                                      'DNI' : item[3], 
-                                      'Nro_de_Telefono' : item[4],
-                                      'E_Mail' : item[5],
-                                      'Domicilio' : item[6],
-                                      'Nro_de_Suministro' : item[7],
-                                      'Tipo_de_Reclamo' : item[8],
-                                      'Descripcion_Reclamo' : item[9]} for item in datos_lista]
+                    
+                #pdb.set_trace()
+                if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
+                    # Convertir la lista en una lista de diccionarios
+                    datos_diccionario = [{'Marca_Temporal': item[0], 
+                                        'Apellido': item[1], 
+                                        'Nombre' : item[2], 
+                                        'DNI' : item[3],
+                                        'Nro_de_Telefono' : item[4],
+                                        'E_Mail' : item[5],
+                                        'Domicilio' : item[6],
+                                        'Nro_de_Suministro' : item[7],
+                                        'Tipo_de_Reclamo' : item[8],
+                                        'Descripcion_Reclamo' : item[9]} for item in datos_lista]
+                elif(SHEET_NAME == SHEET_NAME_REC_AGUA):
+                    # Convertir la lista en una lista de diccionarios
+                    datos_diccionario = [{'Marca_Temporal': item[0], 
+                                        'Apellido': item[1], 
+                                        'Nombre' : item[2], 
+                                        'DNI' : item[3], 
+                                        'Nro_de_Telefono' : item[4],
+                                        'E_Mail' : item[5],
+                                        'Domicilio' : item[6],
+                                        'Nro_de_Suministro' : item[7],
+                                        'Descripcion_Reclamo' : item[8].replace("\n","")} for item in datos_lista]
 
                 '''
                 # Convierte los datos a un DataFrame de Pandas
@@ -356,14 +400,14 @@ def main():
                 crea_documento_unico(datos_diccionario) # Crea una hoja de word por multiples reclamos.
 
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-                
+                '''
                 # --- SACO sheet_id (chatGPT) ------------------------------------------------------------------------------
                 # Obtiene los detalles de la hoja de cálculo. Saco el sheet_id
                 spreadsheet = sheet.get(spreadsheetId=SPREADSHEET_ID).execute()
                 # Busca el sheetId correspondiente al SHEET_NAME
                 sheet_id = None
                 for sheet in spreadsheet['sheets']:
-                    if sheet['properties']['title'] == SHEET_NAME_REC_LUZ:
+                    if sheet['properties']['title'] == SHEET_NAME:
                         sheet_id = sheet['properties']['sheetId']
                         break
                 #---------------------------------------------------------------------------------
@@ -401,7 +445,7 @@ def main():
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
                 #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error aqui
                 print(f"\033[32m {cant_unread_row} :Filas Marcadas como leídas. \033[0m")
-                
+                '''
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
                 print("\033[34m No hay registros nuevos para leer. \033[0m")
@@ -413,9 +457,34 @@ def main():
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
+    '''
+    # Verifica si se pasó algún argumento
+    # sys.arg[0] = Tiene el Nombre del script
+    pdb.set_trace()
+    if len(sys.argv) > 1:
+        # Se paso argumento
+        dato = sys.argv[1]
+        print(f"Dato recibido: {dato}")
+        
+        # Aquí puedes tomar decisiones basadas en el valor de 'dato'
+        if dato == "LUZ":
+            print(f"Has seleccionado RECLAMO DE: {dato}")
+            TipoReclamo(dato)
+            main()
+        elif dato == "AGUA":
+            print(f"Has seleccionado RECLAMO DE: {dato}")
+            TipoReclamo(dato)
+            main()
+        else:
+            print("Opción no reconocida")
+    else:
+        print("No se proporcionó ningún dato - Fin del Programa.")
+    
+    '''
+    TipoReclamo('AGUA')
     main()
     print("\033[35m -----FINAL---- \033[0m")
-
+    exit(0)
 
 # Extraemos values del resultado
 #values = result.get('values',[])
