@@ -108,7 +108,7 @@ def find_first_unread_row(rows):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Encuentra la ULTIMA fila no leída (donde la primera columna no es verde)
+# Devuelve la CANTIDAD de FILAS NO leídas (donde la primera columna no es verde)
 def find_cant_unread_row(rows):
     cont_Filas_No_Verdes = 0
     for i, row in enumerate(rows):
