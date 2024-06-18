@@ -5,22 +5,29 @@ from google.oauth2 import service_account
 #
 from pathlib import Path
 from googleapiclient.errors import HttpError
-#
+# Para limpiar la pantalla
 import os
 # Para word
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 # Para
 import shutil
-# Para leer dato por consola
+# Para leer datos por consola
 import sys
 # Para Depurar un programa
 import pdb
 # Para sacar fecha de hoy
 from datetime import datetime
-# Para usar otra manera de crear documentos de word
+# Para usar otra manera de crear documentos de word. Sin usar Plantilla
 from docx import Document
+# Para enviar correo
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
+####################################################################################################
 # CONFIGURACION DE USUARIOS
 # ------- PARA EL GOOGLE SHEET
 # Alcances necesarios para acceder a la API de Google Sheets
@@ -32,9 +39,9 @@ SPREADSHEET_ID = '1FLWBfOe_ZKTMOviNBR35aC4CkHDGOwN2djyBd-rO0Js'
 
 global SHEET_NAME
 SHEET_NAME='' # Aqui voy a tener con que hoja trabajo. si es de LUZ o es de AGUA
-SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 SHEET_NAME_REC_LUZ = 'RtaFormRecLuz'
 SHEET_NAME_REC_AGUA = 'RtaFormRecAgua'
+SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 
 # -------- PARA EL WORD
 # Ruta al fichero Excel
@@ -43,8 +50,11 @@ SHEET_NAME_REC_AGUA = 'RtaFormRecAgua'
 # Ruta de Salida
 OUTPUT_PATH= '.\Outputs'
 
+# Ruta de Imagenes
+IMAGE_PATH='.\Inputs\Images'
+
 # Ruta plantillas o Templates. Ficheros word
-global WORD_TEMPLATE
+global WORD_TEMPLATE # Defino la plantilla general
 WORD_TEMPLATE=''
 ES_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_ES.docx'
 EN_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_EN.docx'
@@ -52,8 +62,11 @@ WORD_TPL_PRUEBA1='.\Inputs\Templates\WordTemplate_Prueba1.docx'
 WORD_TPL_PRUEBA_L2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
 WORD_TPL_PRUEBA_A2='.\Inputs\Templates\TemplateRECLAMOS_AGUA2.docx'
 
-# Ruta de Imagenes
-IMAGE_PATH='.\Inputs\Images'
+
+global nombre_archivo
+nombre_archivo = ''
+global tipo_Reclamo
+tipo_Reclamo =''
 
 #==============================================================================================================================
 # Limpia pantalla
@@ -73,8 +86,8 @@ def TipoReclamo(reclamo):
     print(f"Tipo de Reclamo: {reclamo}")
     if reclamo == 'LUZ':
         # Es un reclamo de LUZ
-        SHEET_NAME = SHEET_NAME_REC_LUZ
-        WORD_TEMPLATE = WORD_TPL_PRUEBA_L2
+        SHEET_NAME = SHEET_NAME_REC_LUZ # Digo que trabajo con la Hoja de Luz
+        WORD_TEMPLATE = WORD_TPL_PRUEBA_L2 # Uso esta Plantilla
         # Falta definir la planilla
     else:
         # Es un reclamo de AGUA
@@ -82,12 +95,12 @@ def TipoReclamo(reclamo):
         WORD_TEMPLATE = WORD_TPL_PRUEBA_A2
         #SHEET_NAME=SHEET_NAME_PRUEBA
         #exit(0)
-    print(f"\033[34m HOJA SELECCIONADA: {SHEET_NAME}\033[0m")
-    print(f"\033[34m PLANTILLA USADA: {WORD_TEMPLATE}\033[0m")
+    print(f"\033[34mHOJA SELECCIONADA: {SHEET_NAME}\033[0m")
+    print(f"\033[34mPLANTILLA USADA: {WORD_TEMPLATE}\033[0m")
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Encuentra la PRIMERA FILA no leída (donde la primera columna no es verde)
+# Encuentra la PRIMERA FILA no leída (de la primera columna no es verde)
 def find_first_unread_row(rows):
     for i, row in enumerate(rows):
         cell = row['values'][0]
@@ -108,7 +121,7 @@ def find_first_unread_row(rows):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Devuelve la CANTIDAD de FILAS NO leídas (donde la primera columna no es verde)
+# Devuelve la CANTIDAD de FILAS NO leídas (de la primera columna no es verde)
 def find_cant_unread_row(rows):
     cont_Filas_No_Verdes = 0
     for i, row in enumerate(rows):
@@ -131,12 +144,13 @@ def find_cant_unread_row(rows):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# 
+# Imprime los valores de cada fila
 def print_row_data(row):
     """
     Imprime los datos de una fila.
     :param row: Lista con los datos de la fila.
     """
+    print('-' * 80)  # Línea separadora entre filas
     print(', '.join(row))
     print('-' * 80)  # Línea separadora entre filas
 #------------------------------------------------------------------------------------------------------------------------------
@@ -254,6 +268,8 @@ def crea_documento_unico(datos_para_diccionario):
 # Rutina para crear un fichero word para TODAS las personas (OTRA MANERA)
 # ESTA FORMA NO USA PLANTILLA PRE DEFINIDA. 
 def OtraFormaCrearWord(datos_para_diccionario):
+    global nombre_archivo
+    
     # Obtener la fecha actual
     fecha_actual = datetime.now()
     anio = fecha_actual.year
@@ -261,48 +277,135 @@ def OtraFormaCrearWord(datos_para_diccionario):
     dia = fecha_actual.day
 
     # Formatear el nombre del archivo
-    nombre_archivo = f"RECLAMO_{anio}{mes:02d}{dia:02d}.docx"
+    if SHEET_NAME == SHEET_NAME_REC_LUZ:
+        nombre_archivo = f"RECLAMO_LUZ_{anio}{mes:02d}{dia:02d}.docx"
+    
+        # Crear un documento de Word
+        documento = Document()
 
-    # Crear un documento de Word
-    documento = Document()
+        # Definir contador de hojas
+        contador_hojas = 1
 
-    # Definir contador de hojas
-    contador_hojas = 1
+        # Iterar sobre cada diccionario en la lista y agregarlo al documento
+        for indice, diccionario in enumerate(datos_para_diccionario):
+            # Agregar el contenido del diccionario al documento
+            documento.add_paragraph(f"RECLAMO DE LUZ NRO: {contador_hojas}")
+            documento.add_paragraph(f"MARCA: {diccionario['Marca_Temporal']}")
+            documento.add_paragraph(f"Apellido: {diccionario['Apellido']}")
+            documento.add_paragraph(f"NOMBRE: {diccionario['Nombre']}")
+            documento.add_paragraph(f"DNI: {diccionario['DNI']}")
+            documento.add_paragraph(f"NRO. TEL: {diccionario['Nro_de_Telefono']}")
+            documento.add_paragraph(f"CORREO: {diccionario['E_Mail']}")
+            documento.add_paragraph(f"DOMICILIO: {diccionario['Domicilio']}")
+            documento.add_paragraph(f"NRO. SUMINISTRO: {diccionario['Nro_de_Suministro']}")
+            documento.add_paragraph(f"Tipo de Reclamo: {diccionario['Tipo_de_Reclamo']}")
+            documento.add_paragraph(f"DESCRIPCION: {diccionario['Descripcion_Reclamo']}")
 
-    # Iterar sobre cada diccionario en la lista y agregarlo al documento
-    for indice, diccionario in enumerate(datos_para_diccionario):
-        # Agregar el contenido del diccionario al documento
-        documento.add_paragraph(f"RECLAMO DE AGUA NRO: {contador_hojas}")
-        documento.add_paragraph(f"MARCA: {diccionario['Marca_Temporal']}")
-        documento.add_paragraph(f"Apellido: {diccionario['Apellido']}")
-        documento.add_paragraph(f"NOMBRE: {diccionario['Nombre']}")
-        documento.add_paragraph(f"DNI: {diccionario['DNI']}")
-        documento.add_paragraph(f"NRO. TEL: {diccionario['Nro_de_Telefono']}")
-        documento.add_paragraph(f"CORREO: {diccionario['E_Mail']}")
-        documento.add_paragraph(f"DOMICILIO: {diccionario['Domicilio']}")
-        documento.add_paragraph(f"NRO. SUMINISTRO: {diccionario['Nro_de_Suministro']}")
-        documento.add_paragraph(f"DESCRIPCION: {diccionario['Descripcion_Reclamo']}")
+            # Agregar un salto de página después de cada elemento
+            documento.add_page_break()
 
-        # Agregar un salto de página después de cada elemento
-        documento.add_page_break()
+            # Incrementar el contador de hojas
+            contador_hojas += 1
+    
+    elif SHEET_NAME == SHEET_NAME_REC_AGUA:
+        nombre_archivo = f"RECLAMO_AGUA_{anio}{mes:02d}{dia:02d}.docx"
 
-        # Incrementar el contador de hojas
-        contador_hojas += 1
+        # Crear un documento de Word
+        documento = Document()
 
+        # Definir contador de hojas
+        contador_hojas = 1
+
+        # Iterar sobre cada diccionario en la lista y agregarlo al documento
+        for indice, diccionario in enumerate(datos_para_diccionario):
+            # Agregar el contenido del diccionario al documento
+            documento.add_paragraph(f"RECLAMO DE AGUA NRO: {contador_hojas}")
+            documento.add_paragraph(f"MARCA: {diccionario['Marca_Temporal']}")
+            documento.add_paragraph(f"Apellido: {diccionario['Apellido']}")
+            documento.add_paragraph(f"NOMBRE: {diccionario['Nombre']}")
+            documento.add_paragraph(f"DNI: {diccionario['DNI']}")
+            documento.add_paragraph(f"NRO. TEL: {diccionario['Nro_de_Telefono']}")
+            documento.add_paragraph(f"CORREO: {diccionario['E_Mail']}")
+            documento.add_paragraph(f"DOMICILIO: {diccionario['Domicilio']}")
+            documento.add_paragraph(f"NRO. SUMINISTRO: {diccionario['Nro_de_Suministro']}")
+            documento.add_paragraph(f"DESCRIPCION: {diccionario['Descripcion_Reclamo']}")
+
+            # Agregar un salto de página después de cada elemento
+            documento.add_page_break()
+
+            # Incrementar el contador de hojas
+            contador_hojas += 1
+
+    
     # Guardar el documento
-    documento.save(nombre_archivo)
+    documento.save(OUTPUT_PATH + '\\' + nombre_archivo)
 
     print(f"Archivo '{nombre_archivo}' creado exitosamente.")    
 #------------------------------------------------------------------------------------------------------------------------------
 
+#==============================================================================================================================
+# Rutina para enviar correo
+# Envia Correo con elemento adjunto
+def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,password):
+    
+    # Configuración de los datos de acceso a Gmail
+    smtp_servidor = 'smtp.gmail.com'
+    smtp_port = 587 # Puerto seguro TLS
+
+    # Obtener directorio actual del script
+    directorio_script = os.path.dirname(os.path.abspath(__file__))
+    
+    # Subir un nivel hacia la carpeta que contiene 'Outputs'
+    directorio_padre = os.path.dirname(directorio_script)   
+    
+    # Construir ruta completa al archivo
+    ruta_archivo = os.path.join(directorio_padre, 'Outputs', archivo_adjunto)
+    
+    # Configuración del mensaje
+    mensaje = MIMEMultipart()
+    mensaje['From'] = remitente
+    mensaje['To'] = destinatario
+    mensaje['Subject'] = asunto
+
+    # Adjuntar cuerpo del mensaje
+    mensaje.attach(MIMEText(cuerpo, 'plain'))
+
+    # Adjuntar archivo
+    with open(ruta_archivo, 'rb') as adjunto:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(adjunto.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename= {archivo_adjunto}')
+        mensaje.attach(part)
+    
+    try:
+        # Establecer conexión con el servidor SMTP
+        servidor_smtp = smtplib.SMTP(host=smtp_servidor, port=smtp_port)
+        
+        servidor_smtp.starttls() # Habilitar seguridad TLS
+
+        # Autenticación
+        servidor_smtp.login(remitente, password)
+
+        # Envío del correo
+        servidor_smtp.sendmail(remitente, destinatario, mensaje.as_string())
+        print("\033[34mCorreo Enviado Con Exito:\033[0m") # Imprime en color azul
+    except Exception as e:
+        print(f'\033[34mError al enviar correo:\033[0m {str(e)}')
+    finally:
+        # Cerrar conexión
+        servidor_smtp.quit()
+#-----------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
 # RUTINA PRINCIPAL
 def main():
     global SHEET_NAME
+    global nombre_archivo
 
     # Ruta al archivo de credenciales .JSON
     current_dir = Path(__file__).parent
+    # Cargo archivo .json
     KEY=current_dir/'clave_Reclamos_Form_Web.json'
     try:
         # Autenticación y acceso a la hoja de cálculo
@@ -310,25 +413,49 @@ def main():
         creds = service_account.Credentials.from_service_account_file(KEY, scopes=SCOPES)
         service = build('sheets', 'v4', credentials=creds)
 
-        # Llamada a la api
+        # Llamada a la API
         sheet = service.spreadsheets()
         #pdb.set_trace()
+        
+        '''
         # Obtén el rango de datos existente en la hoja, por medio de la columna A
         result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A:A').execute()
+        '''
+
         '''
         result=
         range: NombreHoja!A1:A139
         majorDimension:ROWS
         values: [[Titulo Celda de A1],[],[],[],.......[valor de la celda A139 en este caso]] (es una lista de lista)
         '''
+        '''
         print("\033[34m Resul:\033[0m") # Imprime en color azul
         print(result) # Imprime el diccionario
-        
+                
         rows = result.get('values', []) # Aqui solo son las filas (rows) de la primera columna (A). Hasta la ultima fila que tiene valor
         print(f"\033[34m {len(rows)} : Filas (rows) Recuperadas.\033[0m")
-        # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas
+        # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas o no.
         num_rows = len(result.get('values', [])) - 1 # Descuento la cabecera
-            
+        '''
+
+        # Otra Manera de Sacar el Rango donde hay DATOS.
+        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}').execute()
+        # Obtengo solo los Datos, incluido los nombres de columnas del encabezado.
+        values = result.get('values', [])
+        # Determina el rango donde estan los datos con valores.
+        # Filas y Columnas.
+        if values:
+            num_rows = len(values) # Cantidad de Filas (incluido el encabezado)
+            num_cols = len(values[0]) # Cantidad de Columnas, de la fila 0
+            start_cell = f"A1" # Inicio del rango de datos
+            end_cell = f"{chr(64 + num_cols)}{num_rows}" # Formato
+            print(f"Los datos en '{SHEET_NAME}' van desde: {start_cell} hasta: {end_cell}")
+            num_rows = num_rows - 1 # Le saco el encabezado
+        else:
+            print(f"No se encontraron datos en '{SHEET_NAME}'")
+            # Tendria que terminar el programa
+
+
         '''
         #--chatGPT-------------------------------------------------------------------------------
         # Obtiene los detalles de la hoja de cálculo
@@ -402,9 +529,9 @@ def main():
                 print("\033[34m Procesando desde la fila: \033[0m", first_unread_row)
                 # Este rango es donde esta mi informacion, nueva.
                 if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
-                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:J{last_unread_row}'  # Ajusta el rango según sea necesario
+                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:{end_cell}'  # Ajusta el rango según sea necesario
                 elif(SHEET_NAME == SHEET_NAME_REC_AGUA):
-                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:I{last_unread_row}'  # Ajusta el rango según sea necesario
+                    range_to_read = f'{SHEET_NAME}!A{first_unread_row}:{end_cell}'  # Ajusta el rango según sea necesario
                 
                 # ----CHATGPT
                 rango_base=range_to_read.split('!')[1]  # Esto te dará 'CELDAx:CELDAy' CELDA=Letra, x e y numeros
@@ -435,13 +562,17 @@ def main():
                 '''
 
                 # --- Chat GPT -----------------------------------------------
+                # Lo que quiero hacer es, eliminar los saltos de lineas en las celdas
                 # Especifica el índice del campo que deseas corregir (en este caso, el campo 5 tiene índice 4)
-                indice_campo_a_corregir = 8
-
+                if SHEET_NAME == SHEET_NAME_REC_LUZ:
+                    indice_campo_a_corregir =  9 # Descripcion Luz
+                elif SHEET_NAME == SHEET_NAME_REC_AGUA:
+                    indice_campo_a_corregir = 8 # Descrpcion Agua
+                
                 # Inicializa una nueva lista para almacenar las listas corregidas
                 lista_corregida = []
                 # Imprime el tipo de 
-                print(type(lista_corregida))
+                #print(type(lista_corregida))
 
                 # Recorre cada sublista en la lista de listas
                 for sublista in datos_lista:
@@ -454,21 +585,20 @@ def main():
                     lista_corregida.append(sublista)
 
                 # Imprime la nueva lista de listas corregida
-                print(lista_corregida)
+                #print(lista_corregida)
 
                 datos_lista = lista_corregida
                 # Imprime el tipo de 
-                print(type(datos_lista))
+                #print(type(datos_lista))
 
-                #------------------------------------------------------------- 
-
+                #--------------------------------------------------------------- 
                 if not datos_lista:
                     print('No data found.')
                 else:
                     # Itera sobre las filas y las imprime
                     for row in datos_lista:
-                        print_row_data(row)
-                    
+                        print_row_data(row) # Llamo a la funcion print_row_data()
+                #----------------------------------------------------------------    
                 #pdb.set_trace()
                 if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
                     # Convertir la lista en una lista de diccionarios
@@ -495,8 +625,9 @@ def main():
                                         'Descripcion_Reclamo' : item[8]} for item in datos_lista]
 
                 # Imprime el tipo de datos_diccionario
-                print(type(datos_lista_diccionario))
+                #print(type(datos_lista_diccionario))
                 
+                '''
                 #--- ChatGPT -----------------------------------------------------------------------
                 # Recorre la lista de diccionario e imprime solo el campo especifico del diccionario
                 # Define el campo específico que quieres imprimir
@@ -511,18 +642,11 @@ def main():
                             print(diccionario[campo_especifico])
                         else:
                             print(f"{campo_especifico} no encontrado en el diccionario: {diccionario}")                    
-                
-                    '''
-                    for clave, sub_diccionario in datos_diccionario.items():
-                        if campo_especifico in sub_diccionario:
-                            print(sub_diccionario[campo_especifico])
-                        else:
-                            print(f"{campo_especifico} no encontrado en {clave}")
-                    '''
                 else:
                     print("datos_lista_diccionario, no es una LISTA ")
                 #---------------------------------------------------------------------------------------
-                
+                '''
+
                 '''
                 # Convierte los datos a un DataFrame de Pandas
                 if not datos_lista:
@@ -535,9 +659,28 @@ def main():
                 '''
                 
                 EliminarCrearCarpetas(OUTPUT_PATH)
+                
                 #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por reclamo.
                 #crea_documento_unico(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
                 OtraFormaCrearWord(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
+                
+                #----------Datos Para enviar Correo --------------------------------------------------
+                # Obtener la fecha actual
+                fecha_actual = datetime.now()
+                # Extraer día, mes y año
+                dia = fecha_actual.day
+                mes = fecha_actual.month
+                anio = fecha_actual.year
+                
+                destinatario ='daguirreie@yahoo.com.ar'
+                asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
+                cuerpo ='Hola, adjunto te envio RECLAMO al dia de la Fecha.'
+                archivo_adjunto =nombre_archivo
+                remitente ='enrecat@catamarca.gov.ar'
+                password ='enrecat16'
+                Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
+                #--------------------------------------------------------------------------------------
+
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
                 '''
                 # --- SACO sheet_id (chatGPT) ------------------------------------------------------------------------------
@@ -596,23 +739,25 @@ def main():
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
-    '''
+
     # Verifica si se pasó algún argumento
     # sys.arg[0] = Tiene el Nombre del script
-    pdb.set_trace()
+    #pdb.set_trace()
+    
+    '''
     if len(sys.argv) > 1:
         # Se paso argumento
-        dato = sys.argv[1]
-        print(f"Dato recibido: {dato}")
+        tipo_Reclamo = sys.argv[1]
+        print(f"Dato recibido: {tipo_Reclamo}")
         
-        # Aquí puedes tomar decisiones basadas en el valor de 'dato'
-        if dato == "LUZ":
-            print(f"Has seleccionado RECLAMO DE: {dato}")
-            TipoReclamo(dato)
+        # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo'
+        if tipo_Reclamo == "LUZ":
+            print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+            TipoReclamo(tipo_Reclamo)
             main()
-        elif dato == "AGUA":
-            print(f"Has seleccionado RECLAMO DE: {dato}")
-            TipoReclamo(dato)
+        elif tipo_Reclamo == "AGUA":
+            print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+            TipoReclamo(tipo_Reclamo)
             main()
         else:
             print("Opción no reconocida")
@@ -620,7 +765,12 @@ if __name__ == '__main__':
         print("No se proporcionó ningún dato - Fin del Programa.")
     
     '''
-    TipoReclamo('AGUA')
+    
+    #'''
+    tipo_Reclamo='LUZ'
+    TipoReclamo(tipo_Reclamo)
     main()
     print("\033[35m ----- FINAL PROGRAM ---- \033[0m")
     exit(0)
+    #'''
+    
