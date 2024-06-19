@@ -67,7 +67,8 @@ global nombre_archivo
 nombre_archivo = ''
 global tipo_Reclamo
 tipo_Reclamo =''
-
+global ultimo_color_usado # Pra saber que color se uso en la ultima pintada de celdas
+ultimo_color_usado = ''
 #==============================================================================================================================
 # Limpia pantalla
 def clear_screen():
@@ -100,17 +101,24 @@ def TipoReclamo(reclamo):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Encuentra la PRIMERA FILA no leída (de la primera columna no es verde)
+# Encuentra la PRIMERA FILA no leída (de la primera columna, NO es VERDE o NO es AMARILLA)
 def find_first_unread_row(rows):
+    global ultimo_color_usado
+
     for i, row in enumerate(rows):
         cell = row['values'][0]
         if 'effectiveFormat' in cell:
             background = cell['effectiveFormat']['backgroundColor']
-            # Verifica si el color de la celda es VERDE (0,1,0)
-            if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
-                # No es VERDE la celda
+            # Verifica si el color de la celda es VERDE (0,1,0) o AMARILLA (1,1,0)
+            if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0) and not (background.get('red', 0) == 1 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
+                # No es VERDE o NO es AMARILLA la celda
                 print("\033[34m Primera Fila Sin Leer:\033[0m",i+2)
                 return i + 2
+            else:
+                if (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
+                    ultimo_color_usado = 'VERDE'
+                elif (background.get('red', 0) == 1 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
+                    ultimo_color_usado = 'AMARILLO'
         else:
             #
             #return i + 2
@@ -121,26 +129,28 @@ def find_first_unread_row(rows):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Devuelve la CANTIDAD de FILAS NO leídas (de la primera columna no es verde)
+# Devuelve la CANTIDAD de FILAS NO leídas (de la primera columna NO es VERDE y NO es AMARILLA)
 def find_cant_unread_row(rows):
-    cont_Filas_No_Verdes = 0
+    cont_Filas_No_Verdes_No_Amarillas = 0
     for i, row in enumerate(rows):
         cell = row['values'][0]
         if 'effectiveFormat' in cell:
             background = cell['effectiveFormat']['backgroundColor']
-            # Verifica si el color es verde
-            if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
-                # No es VERDE la celda
-                cont_Filas_No_Verdes = cont_Filas_No_Verdes + 1
+            # Verifica si el color es: VERDE o AMARILLO
+            if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0) and not (background.get('red', 0) == 1 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
+                # No es VERDE y no es AMARILLA la celda
+                cont_Filas_No_Verdes_No_Amarillas +=1
+                '''
                 if (background.get('red', 0) == 1 and background.get('green', 0) == 0 and background.get('blue', 0) == 0):
                     # Si la celda es de COLOR ROJO sale.
                     return cont_Filas_No_Verdes
+                '''
         else:
             #
-            return cont_Filas_No_Verdes
+            return cont_Filas_No_Verdes_No_Amarillas
     
-    print("\033[34m Cant. Filas No Verdes:\033[0m",cont_Filas_No_Verdes)
-    return cont_Filas_No_Verdes
+    print("\033[34mCant. Filas No Verdes\Amarillas:\033[0m",cont_Filas_No_Verdes_No_Amarillas)
+    return cont_Filas_No_Verdes_No_Amarillas
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
@@ -368,6 +378,7 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
     mensaje['Subject'] = asunto
 
     # Adjuntar cuerpo del mensaje
+    # Agregar el cuerpo del correo al mensaje
     mensaje.attach(MIMEText(cuerpo, 'plain'))
 
     # Adjuntar archivo
@@ -387,9 +398,13 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
         # Autenticación
         servidor_smtp.login(remitente, password)
 
+        # Enviar el correo a cada destinatario
+        text = mensaje.as_string()
+        servidor_smtp.sendmail(remitente, destinatario, text)
+        print(f'\033[34mCorreo Enviado Con Exito a: {destinatario}\033[0m') # Imprime en color azul
+
         # Envío del correo
-        servidor_smtp.sendmail(remitente, destinatario, mensaje.as_string())
-        print("\033[34mCorreo Enviado Con Exito:\033[0m") # Imprime en color azul
+        #servidor_smtp.sendmail(remitente, destinatario, mensaje.as_string())
     except Exception as e:
         print(f'\033[34mError al enviar correo:\033[0m {str(e)}')
     finally:
@@ -402,6 +417,7 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
 def main():
     global SHEET_NAME
     global nombre_archivo
+    global ultimo_color_usado
 
     # Ruta al archivo de credenciales .JSON
     current_dir = Path(__file__).parent
@@ -516,11 +532,11 @@ def main():
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             '''
             
-            # Busco la primera fila que no esta pintada de VERDE, del rango (RANGE) especificado.
+            # Busco la primera fila que no esta pintada de VERDE o AMARILLA, del rango (RANGE) especificado.
             first_unread_row = find_first_unread_row(rows)
             if not (first_unread_row == None):
-                cant_unread_row = find_cant_unread_row(rows) # Cantidad de filas no leidas (NO VERDE)
-                last_unread_row = (cant_unread_row + first_unread_row) - 1 # Saco la ultima fila del Rango que NO tiene VERDE.
+                cant_unread_row = find_cant_unread_row(rows) # Cantidad de filas no leidas (NO VERDE o NO AMARILLAS)
+                last_unread_row = (cant_unread_row + first_unread_row) - 1 # Saco la ultima fila del Rango que NO tiene VERDE o AMARILLO. DONDE USO ESTE VALOR???
             else:
                 first_unread_row = 0 # Le pongo valor cero para decir que no hay filas nuevas.
             
@@ -672,17 +688,30 @@ def main():
                 mes = fecha_actual.month
                 anio = fecha_actual.year
                 
-                destinatario ='daguirreie@yahoo.com.ar'
-                asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                 cuerpo ='Hola, adjunto te envio RECLAMO al dia de la Fecha.'
                 archivo_adjunto =nombre_archivo
                 remitente ='enrecat@catamarca.gov.ar'
                 password ='enrecat16'
-                Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
+
+                if tipo_Reclamo == 'LUZ':
+                    asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
+                    # Lista de destinatarios
+                    destinatarios =['selememoises76@gmail.com','reclamosenergia@gmail.com']
+                    # Enviar el correo a cada destinatario individualmente
+                    for destinatario in destinatarios:
+                        Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
+                elif tipo_Reclamo == 'AGUA':
+                    asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
+                    # Lista de destinatarios
+                    destinatarios =['selememoises76@gmail.com','reclamosaguaycloacas@gmail.com']
+                    # Enviar el correo a cada destinatario individualmente
+                    for destinatario in destinatarios:
+                        Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
                 #--------------------------------------------------------------------------------------
 
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-                '''
+                # PINTAR CELDAS
+                
                 # --- SACO sheet_id (chatGPT) ------------------------------------------------------------------------------
                 # Obtiene los detalles de la hoja de cálculo. Saco el sheet_id
                 spreadsheet = sheet.get(spreadsheetId=SPREADSHEET_ID).execute()
@@ -693,8 +722,20 @@ def main():
                         sheet_id = sheet['properties']['sheetId']
                         break
                 #---------------------------------------------------------------------------------
-
-                # Marca la fila como leída, pintando la primera celda de verde
+                # Configuro valores para pintar las celdas, segun ultimo color usado
+                if ultimo_color_usado == 'VERDE':
+                    # Voy a usar AMARILLO
+                    valorRed = 1
+                    valorGreen = 1
+                    valorBlue = 0
+                elif ultimo_color_usado == 'AMARILLO':
+                    # Voy a usar VERDE
+                    valorRed = 0
+                    valorGreen = 1
+                    valorBlue = 0
+                #--------------------------------------------------------------------------------- 
+                # Marca la fila como leída, pintando la primera celda de VERDE O AMARILLA
+                # SEGUN LA FILA ANTERIOR.
                 # Tener en cuenta que la primer fila es la nro 0
                 star_Fila = (first_unread_row - 1)
                 end_Fila = (star_Fila + cant_unread_row)
@@ -711,9 +752,9 @@ def main():
                             'values': [{
                                 'userEnteredFormat': {
                                     'backgroundColor': {
-                                        'red': 0,
-                                        'green': 1,
-                                        'blue': 0
+                                        'red': valorRed,
+                                        'green': valorGreen,
+                                        'blue': valorBlue
                                     }
                                 }
                             }]
@@ -726,8 +767,8 @@ def main():
                 # Ejecuta la solicitud batchUpdate
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
                 #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error aqui
-                print(f"\033[32m {cant_unread_row} :Filas Marcadas como leídas. \033[0m")
-                '''
+                print(f"\033[32m{cant_unread_row} :Filas Marcadas como leídas. \033[0m")
+                
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
                 print("\033[34m No hay registros nuevos para leer. \033[0m")
