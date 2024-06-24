@@ -354,7 +354,7 @@ def OtraFormaCrearWord(datos_para_diccionario):
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
-# Rutina para enviar correo
+# Rutina: para enviar correo
 # Envia Correo con elemento adjunto
 def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,password):
     
@@ -416,8 +416,8 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
 # RUTINA PRINCIPAL
 def main():
     global SHEET_NAME
-    global nombre_archivo
-    global ultimo_color_usado
+    global nombre_archivo # Nombre del archivo word generado, donde estan los reclamos.
+    global ultimo_color_usado # Ultimo color que use para pintar celdas.
 
     # Ruta al archivo de credenciales .JSON
     current_dir = Path(__file__).parent
@@ -464,14 +464,14 @@ def main():
             num_rows = len(values) # Cantidad de Filas (incluido el encabezado)
             num_cols = len(values[0]) # Cantidad de Columnas, de la fila 0
             start_cell = f"A1" # Inicio del rango de datos
-            end_cell = f"{chr(64 + num_cols)}{num_rows}" # Formato
+            end_cell = f"{chr(64 + num_cols)}{num_rows}" # Formato 'ColumnaNroFila'
             print(f"Los datos en '{SHEET_NAME}' van desde: {start_cell} hasta: {end_cell}")
             num_rows = num_rows - 1 # Le saco el encabezado
         else:
             print(f"No se encontraron datos en '{SHEET_NAME}'")
-            # Tendria que terminar el programa
+            # Tendria que terminar el programa. COMO HAGO?
 
-
+        # EL PROGRAMA CONTINUA, PERO NO SE SI SOLO TENGO DATOS DE ENCABEZADO O MAS FILAS.
         '''
         #--chatGPT-------------------------------------------------------------------------------
         # Obtiene los detalles de la hoja de cálculo
@@ -497,8 +497,11 @@ def main():
         '''
 
         if num_rows == 0:
+            # SOLO TENIA EL DATO DE ENCABEZADO.
             print(f"\033[34m No hay datos en la hoja: {SHEET_NAME}\033[0m")
+            # AQUI TENDRIA QUE TERMINAR EL PROGRAMA.
         else:
+            # SI HAY DATOS.
             # Rango sin encabezado
             RANGE = f'{SHEET_NAME}!A2:A{num_rows+1}'  # Rango basado en el número de filas con datos, sin tener en cuenta si estan pintadas o no.
            
@@ -538,6 +541,7 @@ def main():
                 cant_unread_row = find_cant_unread_row(rows) # Cantidad de filas no leidas (NO VERDE o NO AMARILLAS)
                 last_unread_row = (cant_unread_row + first_unread_row) - 1 # Saco la ultima fila del Rango que NO tiene VERDE o AMARILLO. DONDE USO ESTE VALOR???
             else:
+                # NO HAY REGISTROS NUEVOS PARA INFORMAR.
                 first_unread_row = 0 # Le pongo valor cero para decir que no hay filas nuevas.
             
             if first_unread_row:
@@ -676,9 +680,10 @@ def main():
                 
                 EliminarCrearCarpetas(OUTPUT_PATH)
                 
+                # Diferentes maneras de crear el WORD
                 #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por reclamo.
                 #crea_documento_unico(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
-                OtraFormaCrearWord(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
+                OtraFormaCrearWord(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos, sin plantilla.
                 
                 #----------Datos Para enviar Correo --------------------------------------------------
                 # Obtener la fecha actual
@@ -696,14 +701,16 @@ def main():
                 if tipo_Reclamo == 'LUZ':
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
-                    destinatarios =['selememoises76@gmail.com','reclamosenergia@gmail.com']
+                    #destinatarios =['selememoises76@gmail.com','reclamosenergia@gmail.com']
+                    destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
                     # Enviar el correo a cada destinatario individualmente
                     for destinatario in destinatarios:
                         Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
                 elif tipo_Reclamo == 'AGUA':
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
-                    destinatarios =['selememoises76@gmail.com','reclamosaguaycloacas@gmail.com']
+                    #destinatarios =['selememoises76@gmail.com','reclamosaguaycloacas@gmail.com']
+                    destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
                     # Enviar el correo a cada destinatario individualmente
                     for destinatario in destinatarios:
                         Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
@@ -771,7 +778,7 @@ def main():
                 
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
-                print("\033[34m No hay registros nuevos para leer. \033[0m")
+                print("\033[34mNo hay registros nuevos para leer. \033[0m")
             
     except HttpError as error:
         print(f"\033[31m Un Error ha ocurrido: \033[0m {error}")
@@ -780,38 +787,53 @@ def main():
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
+    print("SISTEMA DE RECLAMOS: AREA TECNICA. VERS.: 240624")
+    current_dir = Path(__file__).parent
 
-    # Verifica si se pasó algún argumento
-    # sys.arg[0] = Tiene el Nombre del script
-    #pdb.set_trace()
-    
-    '''
-    if len(sys.argv) > 1:
-        # Se paso argumento
-        tipo_Reclamo = sys.argv[1]
-        print(f"Dato recibido: {tipo_Reclamo}")
+    # Nombre del archivo que deseas verificar
+    archivo = 'clave_Reclamos_Form_Web.json'
+
+    # Ruta al archivo en el mismo directorio donde se está ejecutando el script
+    ruta_al_archivo = os.path.join(current_dir, archivo)
+
+    # Verificar si el archivo existe
+    if os.path.exists(ruta_al_archivo):
+        print(f"El archivo de credenciales: '{archivo}' existe.")
+        # Verifica si se pasó algún argumento
+        # sys.arg[0] = Tiene el Nombre del script
+        #pdb.set_trace() # Para depurar el programa
         
-        # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo'
-        if tipo_Reclamo == "LUZ":
-            print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
-            TipoReclamo(tipo_Reclamo)
-            main()
-        elif tipo_Reclamo == "AGUA":
-            print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
-            TipoReclamo(tipo_Reclamo)
-            main()
+        #'''
+        if len(sys.argv) > 1:
+            # Se paso argumento
+            tipo_Reclamo = sys.argv[1]
+            print(f"Dato recibido: {tipo_Reclamo}")
+            
+            # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo'
+            if tipo_Reclamo == "LUZ":
+                print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+                TipoReclamo(tipo_Reclamo)
+                main()
+            elif tipo_Reclamo == "AGUA":
+                print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+                TipoReclamo(tipo_Reclamo)
+                main()
+            else:
+                print("Opción no reconocida")
         else:
-            print("Opción no reconocida")
+            print("No se proporcionó ningún dato, NO SE DICE QUE TIPO DE RECLAMO ES.")
+        
+        #'''
+        
+        '''
+        # Es para probar el programa
+        tipo_Reclamo='AGUA'
+        TipoReclamo(tipo_Reclamo)
+        main()
+        '''
+        print("\033[35m----- FINAL PROGRAM ---- \033[0m")
+        exit(0)
     else:
-        print("No se proporcionó ningún dato - Fin del Programa.")
-    
-    '''
-    
-    #'''
-    tipo_Reclamo='LUZ'
-    TipoReclamo(tipo_Reclamo)
-    main()
-    print("\033[35m ----- FINAL PROGRAM ---- \033[0m")
-    exit(0)
-    #'''
+        print(f"El archivo de credenciales: '{archivo}' NO existe.")
+        exit(0)
     
