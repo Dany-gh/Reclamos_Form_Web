@@ -48,7 +48,10 @@ SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 #EXCEL_PATH= '.\Inputs\People_Data.xlsx'
 
 # Ruta de Salida
-OUTPUT_PATH= '.\Outputs'
+ruta_archivo_actual = os.path.abspath(__file__)
+carpeta_reclamos = os.path.dirname(os.path.dirname(ruta_archivo_actual))
+# Ruta al archivo en el mismo directorio donde se está ejecutando el script
+OUTPUT_PATH = os.path.join(carpeta_reclamos,'Outputs' )
 
 # Ruta de Imagenes
 IMAGE_PATH='.\Inputs\Images'
@@ -259,11 +262,11 @@ def crea_documento_unico(datos_para_diccionario):
 
         if SHEET_NAME == SHEET_NAME_REC_LUZ:
             # Formatear el nombre del archivo
-            nombre_doc = f"RECLAMOS_LUZ_{anio}{mes:02d}{dia:02d}.docx"
+            nombre_doc = f"RECLAMOS LUZ_{anio}{mes:02d}{dia:02d}.docx"
 
         elif SHEET_NAME == SHEET_NAME_REC_AGUA:
             # Formatear el nombre del archivo
-            nombre_doc = f"RECLAMOS_AGUA_{anio}{mes:02d}{dia:02d}.docx"
+            nombre_doc = f"RECLAMOS AGUA_{anio}{mes:02d}{dia:02d}.docx"
 
         # Guardar el documento
         doc.save(OUTPUT_PATH + '\\' + nombre_doc)
@@ -285,10 +288,18 @@ def OtraFormaCrearWord(datos_para_diccionario):
     anio = fecha_actual.year
     mes = fecha_actual.month
     dia = fecha_actual.day
+    # Obtener los dos últimos dígitos del año
+    anio = anio % 100
+
+    # Obtener la hora actual del sistema
+    hora_actual = datetime.now()
+    # Extraer hora, minutos y segundos
+    hora = hora_actual.hour
+    minutos = hora_actual.minute
 
     # Formatear el nombre del archivo
     if SHEET_NAME == SHEET_NAME_REC_LUZ:
-        nombre_archivo = f"RECLAMO_LUZ_{anio}{mes:02d}{dia:02d}.docx"
+        nombre_archivo = f"RECLAMOS LUZ_{anio:02d}{mes:02d}{dia:02d}_{hora:02d}{minutos:02d}.docx"
     
         # Crear un documento de Word
         documento = Document()
@@ -318,7 +329,8 @@ def OtraFormaCrearWord(datos_para_diccionario):
             contador_hojas += 1
     
     elif SHEET_NAME == SHEET_NAME_REC_AGUA:
-        nombre_archivo = f"RECLAMO_AGUA_{anio}{mes:02d}{dia:02d}.docx"
+        nombre_archivo = f"RECLAMOS AGUA_{anio:02d}{mes:02d}{dia:02d}_{hora:02d}{minutos:02d}.docx"
+        #nombre_archivo = f"RECLAMOS AGUA_{anio}{mes:02d}{dia:02d}.docx"
 
         # Crear un documento de Word
         documento = Document()
@@ -693,24 +705,25 @@ def main():
                 mes = fecha_actual.month
                 anio = fecha_actual.year
                 
-                cuerpo ='Hola, adjunto te envio RECLAMO al dia de la Fecha.'
                 archivo_adjunto =nombre_archivo
                 remitente ='enrecat@catamarca.gov.ar'
                 password ='enrecat16'
 
                 if tipo_Reclamo == 'LUZ':
+                    cuerpo ='Hola, adjunto te envio RECLAMOS DE ENERGIA al dia de la Fecha.'
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
-                    #destinatarios =['selememoises76@gmail.com','reclamosenergia@gmail.com']
-                    destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
+                    destinatarios =['selememoises76@gmail.com','reclamosenergia@gmail.com']
+                    #destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
                     # Enviar el correo a cada destinatario individualmente
                     for destinatario in destinatarios:
                         Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
                 elif tipo_Reclamo == 'AGUA':
+                    cuerpo ='Hola, adjunto te envio RECLAMOS DE AGUA al dia de la Fecha.'
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
-                    #destinatarios =['selememoises76@gmail.com','reclamosaguaycloacas@gmail.com']
-                    destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
+                    destinatarios =['selememoises76@gmail.com','reclamosaguaycloacas@gmail.com']
+                    #destinatarios =['daguirreie@yahoo.com.ar','daguirreie@gmail.com']
                     # Enviar el correo a cada destinatario individualmente
                     for destinatario in destinatarios:
                         Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
@@ -822,7 +835,7 @@ if __name__ == '__main__':
                 print("Opción no reconocida")
         else:
             print("No se proporcionó ningún dato, NO SE DICE QUE TIPO DE RECLAMO ES.")
-        
+
         #'''
         
         '''
