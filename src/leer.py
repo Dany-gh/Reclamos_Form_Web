@@ -1,10 +1,15 @@
+# Primera Version: 240624
+
 # ---------- SE CONECTA USANDO oauth2 ---------------------------------------------------------------
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from googleapiclient.errors import HttpError
+# Esto importe cuando salio error con el json
+from google.auth.exceptions import DefaultCredentialsError
 #
 from pathlib import Path
-from googleapiclient.errors import HttpError
+
 # Para limpiar la pantalla
 import os
 # Para word
@@ -65,13 +70,25 @@ WORD_TPL_PRUEBA1='.\Inputs\Templates\WordTemplate_Prueba1.docx'
 WORD_TPL_PRUEBA_L2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
 WORD_TPL_PRUEBA_A2='.\Inputs\Templates\TemplateRECLAMOS_AGUA2.docx'
 
-
 global nombre_archivo
 nombre_archivo = ''
 global tipo_Reclamo
 tipo_Reclamo =''
 global ultimo_color_usado # Pra saber que color se uso en la ultima pintada de celdas
 ultimo_color_usado = ''
+
+# Definimos los códigos de colores ANSI
+class TextColor:
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    RESET = '\033[0m'  # Resetea el color al predeterminado
+# Ejemplo de uso
+#print(f"{TextColor.RED}Este texto es rojo.{TextColor.RESET}")
+
 #==============================================================================================================================
 # Limpia pantalla
 def clear_screen():
@@ -87,7 +104,7 @@ def clear_screen():
 def TipoReclamo(reclamo):
     global SHEET_NAME
     global WORD_TEMPLATE
-    print(f"Tipo de Reclamo: {reclamo}")
+    print(f"Tipo de Reclamo: {TextColor.GREEN}{reclamo}{TextColor.RESET}")
     if reclamo == 'LUZ':
         # Es un reclamo de LUZ
         SHEET_NAME = SHEET_NAME_REC_LUZ # Digo que trabajo con la Hoja de Luz
@@ -99,8 +116,8 @@ def TipoReclamo(reclamo):
         WORD_TEMPLATE = WORD_TPL_PRUEBA_A2
         #SHEET_NAME=SHEET_NAME_PRUEBA
         #exit(0)
-    print(f"\033[34mHOJA SELECCIONADA: {SHEET_NAME}\033[0m")
-    print(f"\033[34mPLANTILLA USADA: {WORD_TEMPLATE}\033[0m")
+    print(f"HOJA SELECCIONADA: {TextColor.GREEN}{SHEET_NAME}{TextColor.RESET}")
+    print(f"PLANTILLA USADA: {TextColor.GREEN}{WORD_TEMPLATE}{TextColor.RESET}")
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
@@ -357,12 +374,11 @@ def OtraFormaCrearWord(datos_para_diccionario):
 
             # Incrementar el contador de hojas
             contador_hojas += 1
-
     
     # Guardar el documento
     documento.save(OUTPUT_PATH + '\\' + nombre_archivo)
 
-    print(f"Archivo '{nombre_archivo}' creado exitosamente.")    
+    print(f"Archivo '{nombre_archivo}' creado exitosamente.{TextColor.RESET}")    
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
@@ -413,12 +429,12 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
         # Enviar el correo a cada destinatario
         text = mensaje.as_string()
         servidor_smtp.sendmail(remitente, destinatario, text)
-        print(f'\033[34mCorreo Enviado Con Exito a: {destinatario}\033[0m') # Imprime en color azul
+        print(f'\033[34mCorreo Enviado Con Exito a: {destinatario}{TextColor.RESET}') # Imprime en color azul
 
         # Envío del correo
         #servidor_smtp.sendmail(remitente, destinatario, mensaje.as_string())
     except Exception as e:
-        print(f'\033[34mError al enviar correo:\033[0m {str(e)}')
+        print(f'{TextColor.RED}Error al enviar correo:{TextColor.RESET} {str(e)}')
     finally:
         # Cerrar conexión
         servidor_smtp.quit()
@@ -456,6 +472,7 @@ def main():
         majorDimension:ROWS
         values: [[Titulo Celda de A1],[],[],[],.......[valor de la celda A139 en este caso]] (es una lista de lista)
         '''
+
         '''
         print("\033[34m Resul:\033[0m") # Imprime en color azul
         print(result) # Imprime el diccionario
@@ -538,6 +555,7 @@ def main():
             print(rows)
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             '''
+
             '''
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             # 
@@ -625,13 +643,13 @@ def main():
 
                 #--------------------------------------------------------------- 
                 if not datos_lista:
-                    print('No data found.')
+                    print(f'{TextColor.RED}No data found.{TextColor.RESET}')
                 else:
                     # Itera sobre las filas y las imprime
                     for row in datos_lista:
                         print_row_data(row) # Llamo a la funcion print_row_data()
                 #----------------------------------------------------------------    
-                #pdb.set_trace()
+                #pdb.set_trace() # Para depurar.
                 if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
                     # Convertir la lista en una lista de diccionarios
                     datos_lista_diccionario = [{'Marca_Temporal': item[0], 
@@ -709,7 +727,7 @@ def main():
                 remitente ='enrecat@catamarca.gov.ar'
                 password ='enrecat16'
 
-                if tipo_Reclamo == 'LUZ':
+                if (tipo_Reclamo == 'LUZ'):
                     cuerpo ='Hola, adjunto te envio RECLAMOS DE ENERGIA al dia de la Fecha.'
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
@@ -718,7 +736,7 @@ def main():
                     # Enviar el correo a cada destinatario individualmente
                     for destinatario in destinatarios:
                         Enviar_Correo(destinatario,asunto,cuerpo,archivo_adjunto,remitente,password)
-                elif tipo_Reclamo == 'AGUA':
+                elif (tipo_Reclamo == 'AGUA'):
                     cuerpo ='Hola, adjunto te envio RECLAMOS DE AGUA al dia de la Fecha.'
                     asunto =f'RECLAMOS {tipo_Reclamo} AL DIA {dia:02d}-{mes:02d}-{anio}'
                     # Lista de destinatarios
@@ -787,20 +805,26 @@ def main():
                 # Ejecuta la solicitud batchUpdate
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
                 #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error aqui
-                print(f"\033[32m{cant_unread_row} :Filas Marcadas como leídas. \033[0m")
+                print(f"\033[32m{cant_unread_row} :Filas Marcadas como leídas.{TextColor.RESET}")
                 
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
-                print("\033[34mNo hay registros nuevos para leer. \033[0m")
-            
+                print(f"\033[34mNo hay registros nuevos para leer.{TextColor.RESET}")
+    
+    except DefaultCredentialsError as e:
+        print(f"{TextColor.RED}Error en las credenciales (DefaultCredentialsError): {TextColor.RESET} {e}")
+    
     except HttpError as error:
-        print(f"\033[31m Un Error ha ocurrido: \033[0m {error}")
+        print(f"{TextColor.RED}Un Error ha ocurrido (HttpError): {TextColor.RESET} {error}")
         return error
+    
+    except Exception as e:
+        print(f"{TextColor.RED}Ocurrió un error (Exception): {TextColor.RESET}\n{e}")    
 
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
-    print("SISTEMA DE RECLAMOS: AREA TECNICA. VERS.: 240624")
+    print(f"{TextColor.YELLOW}SISTEMA DE RECLAMOS: AREA TECNICA. VERS.: 240909{TextColor.RESET}")
     current_dir = Path(__file__).parent
 
     # Nombre del archivo que deseas verificar
@@ -811,7 +835,7 @@ if __name__ == '__main__':
 
     # Verificar si el archivo existe
     if os.path.exists(ruta_al_archivo):
-        print(f"El archivo de credenciales: '{archivo}' existe.")
+        print(f"El archivo de credenciales: '{archivo}' {TextColor.GREEN}SI Existe.{TextColor.RESET}")
         # Verifica si se pasó algún argumento
         # sys.arg[0] = Tiene el Nombre del script
         #pdb.set_trace() # Para depurar el programa
@@ -820,21 +844,22 @@ if __name__ == '__main__':
         if len(sys.argv) > 1:
             # Se paso argumento
             tipo_Reclamo = sys.argv[1]
-            print(f"Dato recibido: {tipo_Reclamo}")
+            print(f"Dato recibido: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
             
             # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo'
             if tipo_Reclamo == "LUZ":
-                print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+                print(f"Has seleccionado RECLAMO DE: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
                 TipoReclamo(tipo_Reclamo)
                 main()
             elif tipo_Reclamo == "AGUA":
-                print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
+                print(f"Has seleccionado RECLAMO DE: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
+                #print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
                 TipoReclamo(tipo_Reclamo)
                 main()
             else:
-                print("Opción no reconocida")
+                print(f"{TextColor.RED}Opción no reconocida.{TextColor.RESET}")
         else:
-            print("No se proporcionó ningún dato, NO SE DICE QUE TIPO DE RECLAMO ES.")
+            print(f"{TextColor.RED}No se proporcionó ningún dato, NO SE DICE QUE TIPO DE RECLAMO ES (AGUA o LUZ).{TextColor.RESET}")
 
         #'''
         
@@ -847,6 +872,6 @@ if __name__ == '__main__':
         print("\033[35m----- FINAL PROGRAM ---- \033[0m")
         exit(0)
     else:
-        print(f"El archivo de credenciales: '{archivo}' NO existe.")
+        print(f"El archivo de credenciales: '{archivo}' {TextColor.RED}NO Existe.{TextColor.RESET}")
         exit(0)
     
