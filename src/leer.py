@@ -132,7 +132,7 @@ def find_first_unread_row(rows):
             # Verifica si el color de la celda es VERDE (0,1,0) o AMARILLA (1,1,0)
             if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0) and not (background.get('red', 0) == 1 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
                 # No es VERDE o NO es AMARILLA la celda
-                print("\033[34m Primera Fila Sin Leer:\033[0m",i+2)
+                print("{TextColor.BLUE} Primera Fila Sin Leer:{TextColor.RESET}",i+2)
                 return i + 2
             else:
                 if (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
@@ -169,7 +169,7 @@ def find_cant_unread_row(rows):
             #
             return cont_Filas_No_Verdes_No_Amarillas
     
-    print("\033[34mCant. Filas No Verdes\Amarillas:\033[0m",cont_Filas_No_Verdes_No_Amarillas)
+    print(f"{TextColor.BLUE}Cant. Filas No Verdes\Amarillas: {TextColor.RESET}",cont_Filas_No_Verdes_No_Amarillas)
     return cont_Filas_No_Verdes_No_Amarillas
 #------------------------------------------------------------------------------------------------------------------------------
 
@@ -291,7 +291,7 @@ def crea_documento_unico(datos_para_diccionario):
         print(f"Documento guardado como: {nombre_doc}")
     
     except Exception as e:
-        print("Ocurrió un error:", e)
+        print(f"{TextColor.RED}Ocurrió un error: {TextColor.RESET}", e)
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
@@ -429,12 +429,12 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,passwo
         # Enviar el correo a cada destinatario
         text = mensaje.as_string()
         servidor_smtp.sendmail(remitente, destinatario, text)
-        print(f'\033[34mCorreo Enviado Con Exito a: {destinatario}{TextColor.RESET}') # Imprime en color azul
+        print(f'{TextColor.BLUE}Correo Enviado Con Exito a: {destinatario}{TextColor.RESET}') # Imprime en color azul
 
         # Envío del correo
         #servidor_smtp.sendmail(remitente, destinatario, mensaje.as_string())
     except Exception as e:
-        print(f'{TextColor.RED}Error al enviar correo:{TextColor.RESET} {str(e)}')
+        print(f'{TextColor.RED}Error al enviar correo: {TextColor.RESET} {str(e)}')
     finally:
         # Cerrar conexión
         servidor_smtp.quit()
@@ -474,11 +474,11 @@ def main():
         '''
 
         '''
-        print("\033[34m Resul:\033[0m") # Imprime en color azul
+        print(f"{TextColor.BLUE}Resul: {TextColor.RESET}") # Imprime en color azul
         print(result) # Imprime el diccionario
                 
         rows = result.get('values', []) # Aqui solo son las filas (rows) de la primera columna (A). Hasta la ultima fila que tiene valor
-        print(f"\033[34m {len(rows)} : Filas (rows) Recuperadas.\033[0m")
+        print(f"{TextColor.BLUE} {len(rows)} : Filas (rows) Recuperadas.{TextColor.RESET}")
         # Saco la cantidad de filas que tienen datos, per no sabemos si estan pintadas o no.
         num_rows = len(result.get('values', [])) - 1 # Descuento la cabecera
         '''
@@ -494,10 +494,10 @@ def main():
             num_cols = len(values[0]) # Cantidad de Columnas, de la fila 0
             start_cell = f"A1" # Inicio del rango de datos
             end_cell = f"{chr(64 + num_cols)}{num_rows}" # Formato 'ColumnaNroFila'
-            print(f"Los datos en '{SHEET_NAME}' van desde: {start_cell} hasta: {end_cell}")
+            print(f"Los datos en: {TextColor.YELLOW}'{SHEET_NAME}'{TextColor.RESET} van desde: {TextColor.YELLOW}{start_cell}{TextColor.RESET} hasta: {TextColor.YELLOW}{end_cell}{TextColor.RESET}")
             num_rows = num_rows - 1 # Le saco el encabezado
         else:
-            print(f"No se encontraron datos en '{SHEET_NAME}'")
+            print(f"{TextColor.RED}No se encontraron datos en '{SHEET_NAME}'{TextColor.RESET}")
             # Tendria que terminar el programa. COMO HAGO?
 
         # EL PROGRAMA CONTINUA, PERO NO SE SI SOLO TENGO DATOS DE ENCABEZADO O MAS FILAS.
@@ -527,7 +527,7 @@ def main():
 
         if num_rows == 0:
             # SOLO TENIA EL DATO DE ENCABEZADO.
-            print(f"\033[34m No hay datos en la hoja: {SHEET_NAME}\033[0m")
+            print(f"{TextColor.BLUE}No hay datos en la hoja: {SHEET_NAME}{TextColor.RESET}")
             # AQUI TENDRIA QUE TERMINAR EL PROGRAMA.
         else:
             # SI HAY DATOS.
@@ -548,10 +548,10 @@ def main():
             # De esta manera no especifico con que hoja (sheet) quiero trabajar. Por defecto toma la hoja 1.
             # 2 Forma:
             result = sheet.get(spreadsheetId=SPREADSHEET_ID, fields='sheets(data.rowData.values.effectiveFormat)').execute() # Con chatBlackbox. Me toma la sheet1. OK
-            print("\033[34m Result: \033[0m")
+            print(f"{TextColor.BLUE} Result: {TextColor.RESET}")
             print(result)
             rows = result.get('sheets')[0].get('data')[0].get('rowData') # Con chatblackbox. OK
-            print("\033[34m rows: \033[0m")
+            print(f"{TextColor.BLUE} rows: {TextColor.RESET}")
             print(rows)
             #-------------------------------------------------------------------------------------------------------------------------------------------------
             '''
@@ -576,7 +576,8 @@ def main():
             
             if first_unread_row:
                 # Procesa el registro en la primera fila no leída
-                print("\033[34m Procesando desde la fila: \033[0m", first_unread_row)
+                print(f"{TextColor.BLUE} Procesando desde la fila: {TextColor.RESET}", first_unread_row)
+                
                 # Este rango es donde esta mi informacion, nueva.
                 if(SHEET_NAME == SHEET_NAME_REC_LUZ ):               
                     range_to_read = f'{SHEET_NAME}!A{first_unread_row}:{end_cell}'  # Ajusta el rango según sea necesario
@@ -590,7 +591,7 @@ def main():
                 # ---------------------------------------------------------------
 
                 record = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=range_to_read).execute()
-                print("\033[34mRECORD: \033[0m") # Color AZUL
+                print(f"{TextColor.BLUE}RECORD: {TextColor.RESET}") # Color AZUL
                 # Obtengo la LISTA.
                 datos_lista = record.get('values',[])
                 
@@ -700,7 +701,7 @@ def main():
                 '''
                 # Convierte los datos a un DataFrame de Pandas
                 if not datos_lista:
-                    print('No data found.')
+                    print(f'{TextColor.BLUE}No data found.{TextColor.RESET}')
                 else:
                     # Asume que la primera fila de values contiene los nombres de las columnas
                     #df = pd.DataFrame(datos[1:], columns=datos[0])
@@ -809,7 +810,7 @@ def main():
                 
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
-                print(f"\033[34mNo hay registros nuevos para leer.{TextColor.RESET}")
+                print(f"{TextColor.BLUE}No hay registros nuevos para leer.{TextColor.RESET}")
     
     except DefaultCredentialsError as e:
         print(f"{TextColor.RED}Error en las credenciales (DefaultCredentialsError): {TextColor.RESET} {e}")
@@ -869,9 +870,9 @@ if __name__ == '__main__':
         TipoReclamo(tipo_Reclamo)
         main()
         '''
-        print("\033[35m----- FINAL PROGRAM ---- \033[0m")
+        print(f"{TextColor.MAGENTA}----- FINAL PROGRAM ---- {TextColor.RESET}")
         exit(0)
     else:
         print(f"El archivo de credenciales: '{archivo}' {TextColor.RED}NO Existe.{TextColor.RESET}")
         exit(0)
-    
+        
