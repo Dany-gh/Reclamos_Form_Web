@@ -59,16 +59,16 @@ carpeta_reclamos = os.path.dirname(os.path.dirname(ruta_archivo_actual))
 OUTPUT_PATH = os.path.join(carpeta_reclamos,'Outputs' )
 
 # Ruta de Imagenes
-IMAGE_PATH='.\Inputs\Images'
+IMAGE_PATH = './Inputs/Images'
 
 # Ruta plantillas o Templates. Ficheros word
 global WORD_TEMPLATE # Defino la plantilla general
 WORD_TEMPLATE=''
-ES_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_ES.docx'
-EN_WORD_TPL_PATH='.\Inputs\Templates\WordTemplate_EN.docx'
-WORD_TPL_PRUEBA1='.\Inputs\Templates\WordTemplate_Prueba1.docx'
-WORD_TPL_PRUEBA_L2='.\Inputs\Templates\TemplateRECLAMOS_LUZ2.docx'
-WORD_TPL_PRUEBA_A2='.\Inputs\Templates\TemplateRECLAMOS_AGUA2.docx'
+ES_WORD_TPL_PATH=r'.\Inputs\Templates\WordTemplate_ES.docx'
+EN_WORD_TPL_PATH=r'.\Inputs\Templates\WordTemplate_EN.docx'
+WORD_TPL_PRUEBA1='.\\Inputs\\Templates\\WordTemplate_Prueba1.docx'
+WORD_TPL_PRUEBA_L2='.\\Inputs\Templates\\TemplateRECLAMOS_LUZ2.docx'
+WORD_TPL_PRUEBA_A2='./Inputs/Templates/TemplateRECLAMOS_AGUA2.docx'
 
 global nombre_archivo
 nombre_archivo = ''
