@@ -54,26 +54,28 @@ SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 
 # Ruta de Salida
 ruta_archivo_actual = os.path.abspath(__file__)
+#a = os.path.dirname(ruta_archivo_actual) # C:\.....\Reclamos_form_web\src
+#b = os.path.dirname(a) # C:\.....\Reclamo_form_web
 carpeta_reclamos = os.path.dirname(os.path.dirname(ruta_archivo_actual))
 # Ruta al archivo en el mismo directorio donde se está ejecutando el script
-OUTPUT_PATH = os.path.join(carpeta_reclamos,'Outputs' )
+OUTPUT_PATH = os.path.join(carpeta_reclamos,'Outputs' ) # Apunta al directorio Outputs
 
 # Ruta de Imagenes
 IMAGE_PATH = './Inputs/Images'
 
 # Ruta plantillas o Templates. Ficheros word
 global WORD_TEMPLATE # Defino la plantilla general
-WORD_TEMPLATE=''
-ES_WORD_TPL_PATH=r'.\Inputs\Templates\WordTemplate_ES.docx'
-EN_WORD_TPL_PATH=r'.\Inputs\Templates\WordTemplate_EN.docx'
-WORD_TPL_PRUEBA1='.\\Inputs\\Templates\\WordTemplate_Prueba1.docx'
-WORD_TPL_PRUEBA_L2='.\\Inputs\Templates\\TemplateRECLAMOS_LUZ2.docx'
-WORD_TPL_PRUEBA_A2='./Inputs/Templates/TemplateRECLAMOS_AGUA2.docx'
+WORD_TEMPLATE = ''
+ES_WORD_TPL_PATH = r'.\Inputs\Templates\WordTemplate_ES.docx'
+EN_WORD_TPL_PATH = r'.\Inputs\Templates\WordTemplate_EN.docx'
+WORD_TPL_PRUEBA1 = '.\\Inputs\\Templates\\WordTemplate_Prueba1.docx'
+WORD_TPL_PRUEBA_L2 = '.\\Inputs\\Templates\\TemplateRECLAMOS_LUZ2.docx'
+WORD_TPL_PRUEBA_A2 = './Inputs/Templates/TemplateRECLAMOS_AGUA2.docx'
 
 global nombre_archivo
 nombre_archivo = ''
 global tipo_Reclamo
-tipo_Reclamo =''
+tipo_Reclamo = ''
 global ultimo_color_usado # Pra saber que color se uso en la ultima pintada de celdas
 ultimo_color_usado = ''
 
@@ -132,7 +134,7 @@ def find_first_unread_row(rows):
             # Verifica si el color de la celda es VERDE (0,1,0) o AMARILLA (1,1,0)
             if not (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0) and not (background.get('red', 0) == 1 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
                 # No es VERDE o NO es AMARILLA la celda
-                print("{TextColor.BLUE} Primera Fila Sin Leer:{TextColor.RESET}",i+2)
+                print(f"{TextColor.BLUE} Primera Fila Sin Leer: {TextColor.RESET}",i+2)
                 return i + 2
             else:
                 if (background.get('red', 0) == 0 and background.get('green', 0) == 1 and background.get('blue', 0) == 0):
@@ -169,7 +171,8 @@ def find_cant_unread_row(rows):
             #
             return cont_Filas_No_Verdes_No_Amarillas
     
-    print(f"{TextColor.BLUE}Cant. Filas No Verdes\Amarillas: {TextColor.RESET}",cont_Filas_No_Verdes_No_Amarillas)
+    #print(f"{TextColor.BLUE}Cant. Filas No Verdes\\Amarillas: {TextColor.RESET} {cont_Filas_No_Verdes_No_Amarillas}")
+    print(f"{TextColor.BLUE}Cant. Filas No Verdes\\Amarillas: {TextColor.RESET}", cont_Filas_No_Verdes_No_Amarillas)
     return cont_Filas_No_Verdes_No_Amarillas
 #------------------------------------------------------------------------------------------------------------------------------
 
@@ -378,13 +381,13 @@ def OtraFormaCrearWord(datos_para_diccionario):
     # Guardar el documento
     documento.save(OUTPUT_PATH + '\\' + nombre_archivo)
 
-    print(f"Archivo '{nombre_archivo}' creado exitosamente.{TextColor.RESET}")    
+    print(f"Archivo {TextColor.GREEN}'{nombre_archivo}'{TextColor.RESET} creado exitosamente.")    
 #------------------------------------------------------------------------------------------------------------------------------
 
 #==============================================================================================================================
 # Rutina: para enviar correo
 # Envia Correo con elemento adjunto
-def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto,remitente,password):
+def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto, remitente, password):
     
     # Configuración de los datos de acceso a Gmail
     smtp_servidor = 'smtp.gmail.com'
