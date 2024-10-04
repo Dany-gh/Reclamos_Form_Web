@@ -4,6 +4,10 @@
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+
+import jwt
+import time
+
 from googleapiclient.errors import HttpError
 # Esto importe cuando salio error con el json
 from google.auth.exceptions import DefaultCredentialsError
@@ -423,7 +427,6 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto, remitente, pass
     try:
         # Establecer conexión con el servidor SMTP
         servidor_smtp = smtplib.SMTP(host=smtp_servidor, port=smtp_port)
-        
         servidor_smtp.starttls() # Habilitar seguridad TLS
 
         # Autenticación
@@ -443,7 +446,19 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto, remitente, pass
         servidor_smtp.quit()
 #-----------------------------------------------------------------------------------------------------------------------------
 
-#==============================================================================================================================
+# ==============================================================================================================================
+# Rutina: para chequear el token. 
+def chequear_token(credencial):
+    # Obtener el token JWT
+    jwt_token = credencial._make_authorization_grant_assertion()
+    # Decodificar el token JWT para ver los campos 'iat' y 'exp'
+    decoded_token = jwt.decode(jwt_token, options={"verify_signature": False})
+    # Imprimir los valores de 'iat' y 'exp'
+    print(f"Issued at (iat): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(decoded_token['iat']))}")
+    print(f"Expiration (exp): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(decoded_token['exp']))}")
+
+
+# ###########################################################################################################################
 # RUTINA PRINCIPAL
 def main():
     global SHEET_NAME
@@ -458,6 +473,18 @@ def main():
         # Autenticación y acceso a la hoja de cálculo
         creds = None
         creds = service_account.Credentials.from_service_account_file(KEY, scopes=SCOPES)
+        #chequear_token(creds)
+        '''
+        # ====================================================================================================
+        # Obtener el token JWT
+        jwt_token = creds._make_authorization_grant_assertion()
+        # Decodificar el token JWT para ver los campos 'iat' y 'exp'
+        decoded_token = jwt.decode(jwt_token, options={"verify_signature": False})
+        # Imprimir los valores de 'iat' y 'exp'
+        print(f"Issued at (iat): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(decoded_token['iat']))}")
+        print(f"Expiration (exp): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(decoded_token['exp']))}")
+        # /////////////////////////////////////////////////////////////////////////////////////////////////////
+        '''
         service = build('sheets', 'v4', credentials=creds)
 
         # Llamada a la API
@@ -500,7 +527,7 @@ def main():
             print(f"Los datos en: {TextColor.YELLOW}'{SHEET_NAME}'{TextColor.RESET} van desde: {TextColor.YELLOW}{start_cell}{TextColor.RESET} hasta: {TextColor.YELLOW}{end_cell}{TextColor.RESET}")
             num_rows = num_rows - 1 # Le saco el encabezado
         else:
-            print(f"{TextColor.RED}No se encontraron datos en '{SHEET_NAME}'{TextColor.RESET}")
+            print(f"{TextColor.RED}No se encontraron datos en: '{SHEET_NAME}'{TextColor.RESET}")
             # Tendria que terminar el programa. COMO HAGO?
 
         # EL PROGRAMA CONTINUA, PERO NO SE SI SOLO TENGO DATOS DE ENCABEZADO O MAS FILAS.
@@ -828,7 +855,7 @@ def main():
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
-    print(f"{TextColor.YELLOW}SISTEMA DE RECLAMOS: AREA TECNICA. VERS.: 240909{TextColor.RESET}")
+    print(f"{TextColor.YELLOW}VERIFICACION DE RECLAMOS VIA WEB: DIRECCION AREA TECNICA. (En.Re.) - VERS.: 240909{TextColor.RESET}")
     current_dir = Path(__file__).parent
 
     # Nombre del archivo que deseas verificar
@@ -837,7 +864,7 @@ if __name__ == '__main__':
     # Ruta al archivo en el mismo directorio donde se está ejecutando el script
     ruta_al_archivo = os.path.join(current_dir, archivo)
 
-    # Verificar si el archivo existe
+    # Verifica si el archivo existe
     if os.path.exists(ruta_al_archivo):
         print(f"El archivo de credenciales: '{archivo}' {TextColor.GREEN}SI Existe.{TextColor.RESET}")
         # Verifica si se pasó algún argumento
@@ -846,24 +873,23 @@ if __name__ == '__main__':
         
         #'''
         if len(sys.argv) > 1:
-            # Se paso argumento
-            tipo_Reclamo = sys.argv[1]
-            print(f"Dato recibido: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
+            # Se paso algun argumento
+            tipo_Reclamo = sys.argv[1].upper()
+            print(f"Parametro Recibido: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
             
-            # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo'
+            # Aquí puedes tomar decisiones basadas en el valor de 'tipo_Reclamo' o parametro pasado.
             if tipo_Reclamo == "LUZ":
                 print(f"Has seleccionado RECLAMO DE: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
                 TipoReclamo(tipo_Reclamo)
                 main()
             elif tipo_Reclamo == "AGUA":
                 print(f"Has seleccionado RECLAMO DE: {TextColor.GREEN}{tipo_Reclamo}{TextColor.RESET}")
-                #print(f"Has seleccionado RECLAMO DE: {tipo_Reclamo}")
                 TipoReclamo(tipo_Reclamo)
                 main()
             else:
                 print(f"{TextColor.RED}Opción no reconocida.{TextColor.RESET}")
         else:
-            print(f"{TextColor.RED}No se proporcionó ningún dato, NO SE DICE QUE TIPO DE RECLAMO ES (AGUA o LUZ).{TextColor.RESET}")
+            print(f"{TextColor.RED}No se proporcionó ningún Parametro. (NO SE SABE QUE TIPO DE RECLAMO ES [AGUA o LUZ]).{TextColor.RESET}")
 
         #'''
         
@@ -873,9 +899,9 @@ if __name__ == '__main__':
         TipoReclamo(tipo_Reclamo)
         main()
         '''
-        print(f"{TextColor.MAGENTA}----- FINAL PROGRAM ---- {TextColor.RESET}")
-        exit(0)
+        print(f"{TextColor.MAGENTA}----- <<< FINAL PROGRAM >>> ---- {TextColor.RESET}")
+        exit(0) # programa ha terminado correctamente, sin errores.
     else:
-        print(f"El archivo de credenciales: '{archivo}' {TextColor.RED}NO Existe.{TextColor.RESET}")
-        exit(0)
+        print(f"El archivo de credenciales .JSON: '{archivo}' {TextColor.RED}NO Existe.{TextColor.RESET}")
+        exit(0) # programa ha terminado correctamente, sin errores.
         
