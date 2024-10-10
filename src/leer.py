@@ -1,4 +1,6 @@
 # Primera Version: 240624
+# Se ejecuta desde el terminal: pythonleer.py agua
+# Se ejecuta desde el terminal: pythonleer.py luz 
 
 # ---------- SE CONECTA USANDO oauth2 ---------------------------------------------------------------
 from google.oauth2.credentials import Credentials
@@ -855,7 +857,7 @@ def main():
 # /////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
     clear_screen()
-    print(f"{TextColor.YELLOW}VERIFICACION DE RECLAMOS VIA WEB: DIRECCION AREA TECNICA. (En.Re.) - VERS.: 240909{TextColor.RESET}")
+    print(f"{TextColor.YELLOW}VERIFICACION DE RECLAMOS VIA WEB: DIRECCION AREA TECNICA. (En.Re.) - VERS.: 240909_241010{TextColor.RESET}")
     current_dir = Path(__file__).parent
 
     # Nombre del archivo que deseas verificar
