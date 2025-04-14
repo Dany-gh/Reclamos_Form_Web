@@ -1,7 +1,8 @@
 # Primera Version: 240624
-# Se ejecuta desde el terminal: pythonleer.py agua
-# Se ejecuta desde el terminal: pythonleer.py luz 
+# Se ejecuta desde el terminal: python leer.py agua
+# Se ejecuta desde el terminal: python leer.py luz 
 
+# LIBRERIAS:
 # ---------- SE CONECTA USANDO oauth2 ---------------------------------------------------------------
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -11,26 +12,35 @@ import jwt
 import time
 
 from googleapiclient.errors import HttpError
+
 # Esto importe cuando salio error con el json
 from google.auth.exceptions import DefaultCredentialsError
-#
+
+# Para usar Path
 from pathlib import Path
 
 # Para limpiar la pantalla
 import os
+
 # Para word
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
+
 # Para
 import shutil
+
 # Para leer datos por consola
 import sys
+
 # Para Depurar un programa
 import pdb
+
 # Para sacar fecha de hoy
 from datetime import datetime
+
 # Para usar otra manera de crear documentos de word. Sin usar Plantilla
 from docx import Document
+
 # Para enviar correo
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -42,6 +52,7 @@ from email import encoders
 # CONFIGURACION DE USUARIOS
 # ------- PARA EL GOOGLE SHEET
 # Alcances necesarios para acceder a la API de Google Sheets
+####################################################################################################
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # Escribe aquí el ID de tu documento:
@@ -59,12 +70,12 @@ SHEET_NAME_PRUEBA = 'ReclamosRes055-20'
 #EXCEL_PATH= '.\Inputs\People_Data.xlsx'
 
 # Ruta de Salida
-ruta_archivo_actual = os.path.abspath(__file__)
+ruta_archivo_actual = os.path.abspath(__file__) # C:\.....\Reclamos_form_web\src\leer.py (ruta + nombre de archivo.py)
 #a = os.path.dirname(ruta_archivo_actual) # C:\.....\Reclamos_form_web\src
 #b = os.path.dirname(a) # C:\.....\Reclamo_form_web
 carpeta_reclamos = os.path.dirname(os.path.dirname(ruta_archivo_actual))
 # Ruta al archivo en el mismo directorio donde se está ejecutando el script
-OUTPUT_PATH = os.path.join(carpeta_reclamos,'Outputs' ) # Apunta al directorio Outputs
+OUTPUT_PATH = os.path.join(carpeta_reclamos, 'Outputs' ) # Apunta al directorio Outputs
 
 # Ruta de Imagenes
 IMAGE_PATH = './Inputs/Images'
@@ -82,10 +93,15 @@ global nombre_archivo
 nombre_archivo = ''
 global tipo_Reclamo
 tipo_Reclamo = ''
-global ultimo_color_usado # Pra saber que color se uso en la ultima pintada de celdas
+global ultimo_color_usado # Para saber que color se uso en la ultima pintada de celdas
 ultimo_color_usado = ''
 
+# ##################
+# CLASES:
+# ##################
+# =================================================
 # Definimos los códigos de colores ANSI
+# =================================================
 class TextColor:
     RED = '\033[31m'
     GREEN = '\033[32m'
@@ -97,8 +113,12 @@ class TextColor:
 # Ejemplo de uso
 #print(f"{TextColor.RED}Este texto es rojo.{TextColor.RESET}")
 
+####################
+# FUNCIONES:
+####################
 #==============================================================================================================================
 # Limpia pantalla
+#==============================================================================================================================
 def clear_screen():
     # Detecta el sistema operativo
     if os.name == 'nt':  # Para Windows
@@ -109,6 +129,7 @@ def clear_screen():
 
 #==============================================================================================================================
 # Defino si es un Reclamo de LUZ o de AGUA.
+#==============================================================================================================================
 def TipoReclamo(reclamo):
     global SHEET_NAME
     global WORD_TEMPLATE
@@ -130,6 +151,7 @@ def TipoReclamo(reclamo):
 
 #==============================================================================================================================
 # Encuentra la PRIMERA FILA no leída (de la primera columna, NO es VERDE o NO es AMARILLA)
+#==============================================================================================================================
 def find_first_unread_row(rows):
     global ultimo_color_usado
 
@@ -158,6 +180,7 @@ def find_first_unread_row(rows):
 
 #==============================================================================================================================
 # Devuelve la CANTIDAD de FILAS NO leídas (de la primera columna NO es VERDE y NO es AMARILLA)
+#==============================================================================================================================
 def find_cant_unread_row(rows):
     cont_Filas_No_Verdes_No_Amarillas = 0
     for i, row in enumerate(rows):
@@ -184,6 +207,7 @@ def find_cant_unread_row(rows):
 
 #==============================================================================================================================
 # Imprime los valores de cada fila
+#==============================================================================================================================
 def print_row_data(row):
     """
     Imprime los datos de una fila.
@@ -196,6 +220,7 @@ def print_row_data(row):
 
 #==============================================================================================================================
 # Rutina para eliminar y crear carpeta
+#==============================================================================================================================
 def EliminarCrearCarpetas(path):
     #Verificar si la carpeta existe y elimninarla
     if(os.path.exists(path)):
@@ -208,11 +233,12 @@ def EliminarCrearCarpetas(path):
 #==============================================================================================================================
 # Rutina para crear un fichero word para cada persona 
 # ESTA FORMA SI USA PLANTILLA PRE DEFINIDA. 
+#==============================================================================================================================
 def CrearWordPersonas(df_pers):
     # Iteramos sobre cada Persona
     for r_idx, r_val in enumerate(df_pers):
         # Cargar plantilla
-        l_tpl=WORD_TEMPLATE   # Plantilla o Template que se va a usar.
+        l_tpl = WORD_TEMPLATE   # Plantilla o Template que se va a usar.
         '''
         if (r_val['Idioma'] == 'ES'):
             l_tpl=ES_WORD_TPL_PATH
@@ -220,7 +246,7 @@ def CrearWordPersonas(df_pers):
             l_tpl=EN_WORD_TPL_PATH
         '''
         # Procesamos la plantilla
-        docx_tpl=DocxTemplate(l_tpl)
+        docx_tpl = DocxTemplate(l_tpl)
 
         # Añadir imagen grafico circular y de barra
         #img_path = IMAGE_PATH + '\\' + r_val['Imagen']
@@ -260,6 +286,7 @@ def CrearWordPersonas(df_pers):
 #==============================================================================================================================
 # Rutina para crear un fichero word para TODAS las personas 
 # ESTA FORMA SI USA PLANTILLA PRE DEFINIDA. 
+#==============================================================================================================================
 def crea_documento_unico(datos_para_diccionario):
     try:
         # Convertir la lista a una lista de diccionarios
@@ -306,6 +333,7 @@ def crea_documento_unico(datos_para_diccionario):
 #==============================================================================================================================
 # Rutina para crear un fichero word para TODAS las personas (OTRA MANERA)
 # ESTA FORMA NO USA PLANTILLA PRE DEFINIDA. 
+#==============================================================================================================================
 def OtraFormaCrearWord(datos_para_diccionario):
     global nombre_archivo
     
@@ -393,6 +421,7 @@ def OtraFormaCrearWord(datos_para_diccionario):
 #==============================================================================================================================
 # Rutina: para enviar correo
 # Envia Correo con elemento adjunto
+#==============================================================================================================================
 def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto, remitente, password):
     
     # Configuración de los datos de acceso a Gmail
@@ -450,6 +479,7 @@ def Enviar_Correo(destinatario, asunto, cuerpo, archivo_adjunto, remitente, pass
 
 # ==============================================================================================================================
 # Rutina: para chequear el token. 
+# ==============================================================================================================================
 def chequear_token(credencial):
     # Obtener el token JWT
     jwt_token = credencial._make_authorization_grant_assertion()
@@ -461,16 +491,17 @@ def chequear_token(credencial):
 
 
 # ###########################################################################################################################
-# RUTINA PRINCIPAL
+#                                            RUTINA PRINCIPAL
+# ###########################################################################################################################
 def main():
-    global SHEET_NAME
+    global SHEET_NAME # Hoja de cálculo donde estan los reclamos, de agua y luz.
     global nombre_archivo # Nombre del archivo word generado, donde estan los reclamos.
     global ultimo_color_usado # Ultimo color que use para pintar celdas.
 
     # Ruta al archivo de credenciales .JSON
     current_dir = Path(__file__).parent
     # Cargo archivo .json
-    KEY=current_dir/'clave_Reclamos_Form_Web.json'
+    KEY = current_dir/'clave_Reclamos_Form_Web.json'
     try:
         # Autenticación y acceso a la hoja de cálculo
         creds = None
@@ -743,8 +774,8 @@ def main():
                 
                 EliminarCrearCarpetas(OUTPUT_PATH)
                 
-                # Diferentes maneras de crear el WORD
-                #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por reclamo.
+                # Vemos Diferentes maneras de crear el WORD con la informacion que esta en datos_lista_diccionario
+                #CrearWordPersonas(datos_diccionario) # Crea una hoja de word por cada reclamo.
                 #crea_documento_unico(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos.
                 OtraFormaCrearWord(datos_lista_diccionario) # Crea una hoja de word por multiples reclamos, sin plantilla.
                 
@@ -839,7 +870,7 @@ def main():
                 response = service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute()
                 #response = sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID, body=body).execute() # Tengo error aqui
                 print(f"\033[32m{cant_unread_row} :Filas Marcadas como leídas.{TextColor.RESET}")
-                
+
                 # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             else:
                 print(f"{TextColor.BLUE}No hay registros nuevos para leer.{TextColor.RESET}")
@@ -855,6 +886,8 @@ def main():
         print(f"{TextColor.RED}Ocurrió un error (Exception): {TextColor.RESET}\n{e}")    
 
 # /////////////////////////////////////////////////////////////////////////
+
+# #########################################################################
 if __name__ == '__main__':
     clear_screen()
     print(f"{TextColor.YELLOW}VERIFICACION DE RECLAMOS VIA WEB: DIRECCION AREA TECNICA. (En.Re.) - VERS.: 240909_241010{TextColor.RESET}")
